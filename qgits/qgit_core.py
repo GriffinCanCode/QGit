@@ -6,6 +6,7 @@ It includes functions for running Git commands, checking repository status, and 
 common Git workflows like committing, syncing, and pushing changes.
 """
 
+
 import os
 from typing import List, Optional, Any
 import subprocess

@@ -133,6 +133,14 @@ def handle_core_command(command: str, args: Any) -> bool:
                 print("No changes to commit.")
                 return True
                 
+            # Check for sensitive files
+            sensitive_files = ['.pypirc', '.env', '.env.*', '*.key', '*.pem', '*.crt']
+            for file in sensitive_files:
+                if os.path.exists(file):
+                    print(f"⚠️  Warning: Found sensitive file '{file}'. Please ensure it's in .gitignore")
+                    print("   Consider using environment variables or a secure secret management system")
+                    return False
+                
             # Stage all changes
             GitCommand.run("git add .")
             

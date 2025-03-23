@@ -126,6 +126,12 @@ def handle_core_command(command: str, args: Any) -> bool:
             return True
             
         elif command == "all":
+            # Check for any changes first
+            status = GitCommand.run("git status --porcelain")
+            if not status.strip():
+                print("No changes to commit.")
+                return True
+                
             # Stage all changes
             GitCommand.run("git add .")
             

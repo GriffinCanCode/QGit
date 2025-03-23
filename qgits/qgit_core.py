@@ -161,21 +161,9 @@ def handle_core_command(command: str, args: Any) -> bool:
             # Push if requested
             if not getattr(args, "no_push", False):
                 current_branch = GitCommand.get_current_branch()
-                try:
-                    # Try to push directly first
-                    push_cmd = f"git push origin {current_branch}"
-                    if getattr(args, "force", False):
-                        push_cmd += " --force"
-                    GitCommand.run(push_cmd)
-                except GitCommandError as e:
-                    if "fetch first" in str(e):
-                        # If remote has changes, pull first
-                        print("Remote has changes. Pulling latest changes...")
-                        GitCommand.pull("origin", current_branch)
-                        # Try pushing again
-                        GitCommand.run(push_cmd)
-                    else:
-                        raise
+                # Always force push for 'all' command
+                push_cmd = f"git push -f origin {current_branch}"
+                GitCommand.run(push_cmd)
             
             return True
             

@@ -3,7 +3,7 @@
 This package provides automation and convenience functions for common Git operations.
 """
 
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 
 """QGit package initialization."""
 

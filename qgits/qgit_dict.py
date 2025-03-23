@@ -3,6 +3,11 @@ from typing import Any, Dict
 # Dictionary containing help information and configuration for all qgit commands
 # Each command has a description, usage pattern, and available options
 QGIT_COMMANDS: Dict[str, Dict[str, Any]] = {
+    "makegpg": {
+        "description": "Configure GPG signing for Git commits",
+        "usage": "qgit makegpg",
+        "options": {},
+    },
     "commit": {
         "description": "Stage and commit all modified files",
         "usage": "qgit commit [-m MESSAGE]",

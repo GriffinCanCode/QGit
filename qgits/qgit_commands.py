@@ -10,6 +10,7 @@ import argparse
 from abc import ABC, abstractmethod
 import os
 from typing import Dict, Optional, Any
+from pathlib import Path
 
 from qgits.qgit_core import is_git_repo, run_command
 from qgits.qgit_errors import (
@@ -525,6 +526,31 @@ class ShoveCommand(QGitCommand):
             # Execute shove workflow
             return execute_shove()
             
+        except Exception as e:
+            self.handle_error(e)
+            return False
+
+
+class GPGCommand(QGitCommand):
+    """Configure GPG signing for Git commits.
+    
+    Sets up GPG key generation, pinentry configuration, and Git signing settings.
+    Ensures secure commit signing is properly configured.
+    """
+    
+    def execute(self, args: argparse.Namespace) -> bool:
+        """Execute the GPG setup command.
+        
+        Args:
+            args: Command arguments (unused for this command)
+            
+        Returns:
+            True if GPG setup completed successfully, False otherwise
+        """
+        try:
+            from .scripts.gpg_setup import run_gpg_setup
+            run_gpg_setup()
+            return True
         except Exception as e:
             self.handle_error(e)
             return False

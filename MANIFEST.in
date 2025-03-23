@@ -3,4 +3,6 @@ include qgits/qgit_author.py
 include qgits/qgit_author_data.py
 include internal/**/*.py
 include README.md
-include LICENSE 
+include LICENSE
+include qgits/scripts/*.sh
+include qgits/scripts/__init__.py 

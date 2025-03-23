@@ -13,6 +13,7 @@ from qgits.qgit_commands import (
     LastCommand,
     ShoveCommand,
     LeaderboardCommand,
+    GPGCommand,
 )
 from qgits.qgit_author import AuthorCommand
 from qgits.qgit_dict import QGIT_COMMANDS
@@ -66,11 +67,12 @@ def main() -> Optional[int]:
 
         # Parse command line arguments
         parser = argparse.ArgumentParser(description="QGit - A Git operations automation tool")
-        parser.add_argument("--version", action="version", version="%(prog)s 1.1.4")
+        parser.add_argument("--version", action="version", version="%(prog)s 1.1.5")
         subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
         # Register all commands with their descriptions and arguments
         commands = {
+            "makegpg": (GPGCommand(), "Configure GPG signing for Git commits", {}),
             "benedict": (BenedictCommand(), "Scan for sensitive files", {
                 "--arnold": ("store_true", "Automatically handle sensitive files"),
                 "--patterns": (str, "Custom patterns to scan for"),

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "qgit"
-version = "1.1.4"
+version = "1.1.5"
 description = "A powerful Git operations automation tool that provides enhanced Git workflow management, repository visualization, and security scanning capabilities."
 readme = "readme.md"
 requires-python = ">=3.8"
@@ -69,6 +69,7 @@ dev = [
 
 [project.scripts]
 qgit = "qgits.cli:main"
+qgit-makegpg = "qgits.scripts.gpg_setup:main"
 
 [tool.black]
 line-length = 88
@@ -96,7 +97,9 @@ asyncio_mode = "auto"
 [tool.hatch.build]
 artifacts = [
     "qgits/*.py",
-    "internal/**/*.py"
+    "internal/**/*.py",
+    "qgits/scripts/*.sh",
+    "qgits/scripts/__init__.py"
 ]
 include = [
     "qgits/*.py",
@@ -104,7 +107,9 @@ include = [
     "README.md",
     "LICENSE",
     "qgits/qgit_author.py",
-    "qgits/qgit_author_data.py"
+    "qgits/qgit_author_data.py",
+    "qgits/scripts/*.sh",
+    "qgits/scripts/__init__.py"
 ]
 exclude = [
     "**/*.env",
@@ -120,5 +125,5 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["qgits", "internal"]
-force-include = { "qgits/qgit_author.py" = "qgits/qgit_author.py", "qgits/qgit_author_data.py" = "qgits/qgit_author_data.py" }
+packages = ["qgits", "internal", "qgits.scripts"]
+force-include = { "qgits/qgit_author.py" = "qgits/qgit_author.py", "qgits/qgit_author_data.py" = "qgits/qgit_author_data.py", "qgits/scripts/setup_gpg.sh" = "qgits/scripts/setup_gpg.sh" }

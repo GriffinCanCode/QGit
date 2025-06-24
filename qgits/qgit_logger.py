@@ -5,21 +5,30 @@ This module provides a centralized logging system that uses SQLite for storage
 and leverages the resource manager for optimized performance on M4 systems.
 """
 
-import asyncio
-import json
 import os
-import sqlite3
-import threading
+import asyncio
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from pathlib import Path
-from queue import Empty, Queue
-from typing import Any, Dict, List, Optional
-
+from datetime import (
+    datetime,
+    timedelta,
+)
 from internal.resource_manager import get_resource_manager
-
+import json
+from pathlib import Path
 from qgits.qgit_errors import FileOperationError
+from queue import (
+    Empty,
+    Queue,
+)
+import sqlite3
+import threading
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+)
 
 
 @dataclass
@@ -127,7 +136,7 @@ class QGitLogger:
             if conn:
                 conn.rollback()
             raise FileOperationError(
-                f"Database error: {str(e)}", filepath=self.db_path, operation="database"
+                f"Database error: {e!s}", filepath=self.db_path, operation="database"
             )
         finally:
             if conn:

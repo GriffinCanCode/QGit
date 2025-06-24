@@ -1,11 +1,13 @@
 """Module for safely removing files from Git history while preserving local copies."""
 
 import os
-import subprocess
 from datetime import datetime
-from typing import List, Optional
-
 from qgits.qgit_logger import logger
+import subprocess
+from typing import (
+    List,
+    Optional,
+)
 
 
 def verify_local_files(patterns: List[str]) -> bool:
@@ -142,5 +144,5 @@ def cancel_files(
             message="Failed to remove files from history",
             metadata={"error": str(e), "timestamp": datetime.now().isoformat()},
         )
-        print(f"Error: {str(e)}")
+        print(f"Error: {e!s}")
         return False

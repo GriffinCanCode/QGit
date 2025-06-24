@@ -2,9 +2,14 @@
 
 """Utility functions for qgit operations."""
 
-import fnmatch
 import os
-from typing import Any, Dict, List, Tuple
+import fnmatch
+from typing import (
+    Any,
+    Dict,
+    List,
+    Tuple,
+)
 
 
 def detect_risky_files(
@@ -341,5 +346,5 @@ def check_tracked_files(file_patterns: List[str] = None) -> Dict[str, Dict[str, 
         return problematic_files
 
     except Exception as e:
-        print(f"Error checking tracked files: {str(e)}")
+        print(f"Error checking tracked files: {e!s}")
         return {}

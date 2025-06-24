@@ -1,9 +1,13 @@
 import os
-import platform
-import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List
+import platform
+import subprocess
+from typing import (
+    Dict,
+    List,
+)
+
 
 # Registry of available environment variables with their descriptions and validation rules
 ENV_REGISTRY = {
@@ -45,7 +49,11 @@ ENV_REGISTRY = {
     "KEEP_APPS": {
         "required": True,
         "description": "Comma-separated list of applications to keep running",
-        "default": "Google Chrome,Cursor,Terminal" if platform.system() != "Windows" else "Google Chrome,Cursor,cmd.exe",
+        "default": (
+            "Google Chrome,Cursor,Terminal"
+            if platform.system() != "Windows"
+            else "Google Chrome,Cursor,cmd.exe"
+        ),
     },
     "DEBUG": {
         "required": False,

@@ -1,4 +1,8 @@
-from typing import Any, Dict
+from typing import (
+    Any,
+    Dict,
+)
+
 
 # Dictionary containing help information and configuration for all qgit commands
 # Each command has a description, usage pattern, and available options
@@ -92,7 +96,7 @@ QGIT_COMMANDS: Dict[str, Dict[str, Any]] = {
             "--leaderboard": "Show interactive leaderboard of contributors",
             "--visualize": "Generate interactive visualizations",
             "--export": "Export stats to specified format (csv/json)",
-            "--period": "Time period for analysis (day/week/month/year/all)"
+            "--period": "Time period for analysis (day/week/month/year/all)",
         },
     },
     "doctor": {
@@ -146,7 +150,7 @@ QGIT_COMMANDS: Dict[str, Dict[str, Any]] = {
             "--limit": "Number of contributors to display",
             "--export": "Export leaderboard data (csv/json)",
             "--visualize": "Show interactive visualizations",
-            "--achievements": "Show contributor achievements and badges"
+            "--achievements": "Show contributor achievements and badges",
         },
     },
 }

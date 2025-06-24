@@ -179,10 +179,26 @@ class QGitConfig:
                 ("--author", "Filter by author", "Filter stats for specific author."),
                 ("--team", "Team insights", "Show team collaboration insights."),
                 ("--files", "File stats", "Show file-level statistics."),
-                ("--leaderboard", "Show leaderboard", "Display interactive contributor rankings."),
-                ("--visualize", "Interactive view", "Generate interactive visualizations."),
-                ("--export", "Export data", "Export stats to specified format (csv/json)."),
-                ("--period", "Time period", "Specify time period for analysis (day/week/month/year/all)."),
+                (
+                    "--leaderboard",
+                    "Show leaderboard",
+                    "Display interactive contributor rankings.",
+                ),
+                (
+                    "--visualize",
+                    "Interactive view",
+                    "Generate interactive visualizations.",
+                ),
+                (
+                    "--export",
+                    "Export data",
+                    "Export stats to specified format (csv/json).",
+                ),
+                (
+                    "--period",
+                    "Time period",
+                    "Specify time period for analysis (day/week/month/year/all).",
+                ),
                 (
                     "--fix",
                     "Auto-fix issues",

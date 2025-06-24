@@ -6,49 +6,67 @@ like scanning for sensitive files, generating repository statistics, and perform
 health checks. Each command inherits from the base QGitCommand class.
 """
 
-import argparse
-from abc import ABC, abstractmethod
 import os
-from typing import Dict, Optional, Any
-from pathlib import Path
-
-from qgits.qgit_core import is_git_repo, run_command
+from abc import (
+    ABC,
+    abstractmethod,
+)
+import argparse
+from qgits.qgit_author_data import (
+    get_random_advice,
+    get_random_facts,
+    get_random_quote,
+)
+from qgits.qgit_core import (
+    is_git_repo,
+    run_command,
+)
 from qgits.qgit_errors import (
+    format_error,
     GitCommandError,
     GitNetworkError,
     GitRepositoryError,
     GitStateError,
-    format_error,
 )
 from qgits.qgit_logger import logger
-from qgits.qgit_author_data import get_random_facts, get_random_quote, get_random_advice
-from qgits.qgit_stats import get_commit_stats, get_churn_stats, get_team_stats, get_leaderboard_stats
+from qgits.qgit_stats import (
+    get_churn_stats,
+    get_commit_stats,
+    get_leaderboard_stats,
+    get_team_stats,
+)
+from typing import (
+    Any,
+    Dict,
+    Optional,
+)
+
 
 def fallback_display():
     """Display author information in plain text mode if GUI fails."""
     print("\n" + "=" * 40)
     print("  GRIFFIN: THE PROGRAMMING GOD")
     print("=" * 40)
-    
+
     try:
         print("\nFun Facts:")
         for i, fact in enumerate(get_random_facts(3), 1):
             print(f"{i}. {fact}")
-        
+
         print("\nWords of Wisdom:")
         print(f'"{get_random_quote()}"')
-        
+
         print("\nDaily Advice:")
         print(get_random_advice())
     except Exception as e:
         logger.log(
             level="error",
             command="author",
-            message=f"Error in fallback display: {str(e)}",
-            metadata={"error_type": type(e).__name__}
+            message=f"Error in fallback display: {e!s}",
+            metadata={"error_type": type(e).__name__},
         )
         print("\nCouldn't load author data, but Griffin is still a programming god.")
-    
+
     print("\n" + "=" * 40 + "\n")
 
 
@@ -217,48 +235,48 @@ class BenedictCommand(QGitCommand):
 
 class LeaderboardCommand(QGitCommand):
     """Display a leaderboard of repository contributors based on line changes.
-    
+
     Shows who has made the most line-by-line changes in the repository,
     with detailed statistics per author and file.
     """
-    
+
     def execute(self, args: argparse.Namespace) -> bool:
         """Execute the leaderboard command.
-        
+
         Args:
             args: Command arguments (unused for this command)
-            
+
         Returns:
             True if leaderboard displayed successfully, False otherwise
         """
         try:
             # Verify we're in a git repository first
             self.verify_repository()
-            
+
             # Get leaderboard statistics with error handling
             try:
                 stats = get_leaderboard_stats()
             except Exception as e:
                 self.handle_error(e)
                 stats = {"authors": []}  # Create empty stats on error
-            
+
             # Handle None return or missing authors
             if not stats or not isinstance(stats, dict):
                 stats = {"authors": []}
             if "authors" not in stats:
                 stats["authors"] = []
-            
+
             # Import and run the curses-based leaderboard
-            import curses
             from .qgit_gui import LeaderboardPage
-            
+            import curses
+
             def run_leaderboard(stdscr):
                 return LeaderboardPage(stdscr, stats).run()
-            
+
             # Run the GUI leaderboard using curses
             curses.wrapper(run_leaderboard)
             return True
-            
+
         except Exception as e:
             self.handle_error(e)
             return False
@@ -284,14 +302,14 @@ class StatsCommand(QGitCommand):
         """
         try:
             # Handle leaderboard mode
-            if hasattr(args, 'leaderboard') and args.leaderboard:
+            if hasattr(args, "leaderboard") and args.leaderboard:
                 return LeaderboardCommand().execute(args)
-                
+
             # Collect repository statistics using the new stats module
             commit_stats = get_commit_stats(
                 author=args.author,
-                start_date=args.from_date if hasattr(args, 'from_date') else None,
-                end_date=args.to_date if hasattr(args, 'to_date') else None
+                start_date=args.from_date if hasattr(args, "from_date") else None,
+                end_date=args.to_date if hasattr(args, "to_date") else None,
             )
             churn_stats = get_churn_stats()
             team_stats = get_team_stats() if args.team else None
@@ -301,12 +319,15 @@ class StatsCommand(QGitCommand):
             return True
 
         except Exception as e:
-            self.add_error(f"Error generating stats: {str(e)}")
+            self.add_error(f"Error generating stats: {e!s}")
             return False
 
-    def _display_stats(self, commit_stats: Dict[str, Any], 
-                      churn_stats: Dict[str, Any], 
-                      team_stats: Optional[Dict[str, Any]] = None) -> None:
+    def _display_stats(
+        self,
+        commit_stats: Dict[str, Any],
+        churn_stats: Dict[str, Any],
+        team_stats: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """Display collected statistics in a formatted way.
 
         Args:
@@ -329,10 +350,10 @@ class StatsCommand(QGitCommand):
         print(f"Total Additions: {churn_stats.get('total_additions', 0)}")
         print(f"Total Deletions: {churn_stats.get('total_deletions', 0)}")
         print(f"Total Changes: {churn_stats.get('total_changes', 0)}")
-        
-        if churn_stats.get('most_changed_files'):
+
+        if churn_stats.get("most_changed_files"):
             print("\nMost Changed Files:")
-            for file in churn_stats['most_changed_files']:
+            for file in churn_stats["most_changed_files"]:
                 print(f"• {file['file']}: +{file['additions']} -{file['deletions']}")
 
         # Display team statistics if available
@@ -340,10 +361,10 @@ class StatsCommand(QGitCommand):
             print("\n👥 Team Statistics")
             print("=" * 50)
             print(f"Total Contributors: {team_stats.get('total_authors', 0)}")
-            
-            if team_stats.get('authors'):
+
+            if team_stats.get("authors"):
                 print("\nContributor Details:")
-                for author, stats in team_stats['authors'].items():
+                for author, stats in team_stats["authors"].items():
                     print(f"\n{author}:")
                     print(f"  • Commits: {stats['commits']}")
                     print(f"  • Active Days: {stats['active_days']}")
@@ -407,62 +428,67 @@ class DoctorCommand(QGitCommand):
             return all_passed
 
         except Exception as e:
-            self.add_error(f"Error during health check: {str(e)}")
+            self.add_error(f"Error during health check: {e!s}")
             return False
 
 
 class LastCommand(QGitCommand):
     """Manage commit checkouts with safespace integration.
-    
+
     Allows checking out previous commits while safely storing current changes.
     Can also clean up safespace when done with the old version.
     """
-    
+
     def execute(self, args) -> bool:
         """Execute the last command.
-        
+
         Args:
             args: Command line arguments
-            
+
         Returns:
             True if successful, False otherwise
         """
-        from .qgit_last import get_recent_commits, create_safespace, checkout_commit, complete_last
-        
+        from .qgit_last import (
+            checkout_commit,
+            complete_last,
+            create_safespace,
+            get_recent_commits,
+        )
+
         try:
             # Handle complete subaction
-            if args.subaction == 'complete':
+            if args.subaction == "complete":
                 # Find all safespace directories
-                safespaces = [d for d in os.listdir('.') if d.startswith('.safespace_')]
+                safespaces = [d for d in os.listdir(".") if d.startswith(".safespace_")]
                 if not safespaces:
                     print("No safespaces found to clean up")
                     return True
-                
+
                 success = True
                 for safespace in safespaces:
                     try:
                         complete_last(safespace)
                         print(f"Successfully cleaned up safespace: {safespace}")
                     except Exception as e:
-                        print(f"Failed to clean up safespace {safespace}: {str(e)}")
+                        print(f"Failed to clean up safespace {safespace}: {e!s}")
                         success = False
                 return success
-            
+
             # Normal last command execution
             commits = get_recent_commits()
             if not commits:
                 print("No commits found")
                 return False
-            
+
             # Display commits
             print("\nRecent commits:")
             for i, (hash_val, date, message) in enumerate(commits, 1):
                 print(f"{i}. [{date}] {message} ({hash_val[:8]})")
-            
+
             # Get user input
             while True:
                 choice = input("\nEnter commit number to checkout (or 'q' to quit): ")
-                if choice.lower() == 'q':
+                if choice.lower() == "q":
                     return True
                 try:
                     index = int(choice) - 1
@@ -471,61 +497,67 @@ class LastCommand(QGitCommand):
                     print("Invalid commit number. Please try again.")
                 except ValueError:
                     print("Invalid input. Please enter a number or 'q' to quit.")
-            
+
             # Get selected commit
             commit_hash = commits[index][0]
-            
+
             # Ask about safespace
-            save_changes = input("\nSave current changes to safespace? (Y/n): ").lower() != 'n'
-            
+            save_changes = (
+                input("\nSave current changes to safespace? (Y/n): ").lower() != "n"
+            )
+
             # Create safespace if requested
             safespace_dir = None
             if save_changes:
                 safespace_dir = create_safespace(commit_hash)
                 print(f"\nCreated safespace at: {safespace_dir}")
-            
+
             # Checkout the commit
             checkout_commit(commit_hash, safespace_dir)
-            
-            print(f"\nSuccessfully checked out commit: {commits[index][2]} ({commit_hash[:8]})")
+
+            print(
+                f"\nSuccessfully checked out commit: {commits[index][2]} ({commit_hash[:8]})"
+            )
             if safespace_dir:
                 print(f"Your changes are saved in: {safespace_dir}")
-                print("Use 'qgit last complete' when you want to clean up the safespace")
-            
+                print(
+                    "Use 'qgit last complete' when you want to clean up the safespace"
+                )
+
             return True
-            
+
         except Exception as e:
-            print(f"Error executing last: {str(e)}")
+            print(f"Error executing last: {e!s}")
             return False
 
 
 class ShoveCommand(QGitCommand):
     """Safely push to origin main after security checks.
-    
+
     Performs security scan for risky files and handles them before pushing.
     Integrates with benedict functionality for comprehensive security.
     """
-    
+
     def execute(self, args: argparse.Namespace) -> bool:
         """Execute the shove command.
-        
+
         Runs security checks and pushes to origin main if safe.
-        
+
         Args:
             args: Command arguments (unused for this command)
-            
+
         Returns:
             True if push completed successfully, False otherwise
         """
         try:
             from .qgit_shove import execute_shove
-            
+
             # Verify we're in a git repository
             self.verify_repository()
-            
+
             # Execute shove workflow
             return execute_shove()
-            
+
         except Exception as e:
             self.handle_error(e)
             return False
@@ -533,22 +565,23 @@ class ShoveCommand(QGitCommand):
 
 class GPGCommand(QGitCommand):
     """Configure GPG signing for Git commits.
-    
+
     Sets up GPG key generation, pinentry configuration, and Git signing settings.
     Ensures secure commit signing is properly configured.
     """
-    
+
     def execute(self, args: argparse.Namespace) -> bool:
         """Execute the GPG setup command.
-        
+
         Args:
             args: Command arguments (unused for this command)
-            
+
         Returns:
             True if GPG setup completed successfully, False otherwise
         """
         try:
             from .scripts.gpg_setup import run_gpg_setup
+
             run_gpg_setup()
             return True
         except Exception as e:

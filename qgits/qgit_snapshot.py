@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
-from datetime import datetime, timedelta
-from typing import Optional
-
+from datetime import (
+    datetime,
+    timedelta,
+)
 from qgits.qgit_errors import (
+    format_error,
     GitCommandError,
     GitRepositoryError,
     GitStateError,
-    format_error,
 )
 from qgits.qgit_git import GitCommand
+from typing import Optional
 
 
 def create_snapshot(

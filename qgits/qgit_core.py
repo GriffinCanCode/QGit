@@ -8,20 +8,22 @@ common Git workflows like committing, syncing, and pushing changes.
 
 
 import os
-from typing import List, Optional, Any
-import subprocess
-from pathlib import Path
-
 from qgits.qgit_errors import (
     FileOperationError,
+    format_error,
     GitCommandError,
     GitNetworkError,
     GitRepositoryError,
     GitStateError,
-    format_error,
 )
 from qgits.qgit_git import GitCommand
 from qgits.qgit_logger import logger
+import subprocess
+from typing import (
+    Any,
+    List,
+    Optional,
+)
 
 
 def run_command(command: str) -> str:
@@ -55,10 +57,10 @@ def handle_core_command(command: str, args: Any) -> bool:
         if command == "commit":
             # Stage all changes
             GitCommand.run("git add .")
-            
+
             # Get commit message
             message = getattr(args, "m", "Update")
-            
+
             # Build commit command
             cmd = ["git commit"]
             if getattr(args, "amend", False):
@@ -66,7 +68,7 @@ def handle_core_command(command: str, args: Any) -> bool:
             if getattr(args, "no_verify", False):
                 cmd.append("--no-verify")
             cmd.append(f"-m '{message}'")
-            
+
             # Try to commit with GPG signing first
             try:
                 GitCommand.run(" ".join(cmd))
@@ -78,36 +80,36 @@ def handle_core_command(command: str, args: Any) -> bool:
                 else:
                     raise
             return True
-            
+
         elif command == "sync":
             # Get current branch
             current_branch = GitCommand.get_current_branch()
-            
+
             # Build pull command
             remote = getattr(args, "remote", "origin")
             branch = getattr(args, "branch", current_branch)
-            
+
             if not getattr(args, "no_pull", False):
                 GitCommand.pull(remote, branch)
-            
+
             if not getattr(args, "no_push", False):
                 GitCommand.run(f"git push {remote} {branch}")
-            
+
             return True
-            
+
         elif command == "save":
             # Stage and commit changes
             GitCommand.run("git add .")
-            
+
             # Get commit message
             message = getattr(args, "m", "Update")
-            
+
             # Build commit command
             cmd = ["git commit"]
             if getattr(args, "amend", False):
                 cmd.append("--amend")
             cmd.append(f"-m '{message}'")
-            
+
             # Try to commit with GPG signing first
             try:
                 GitCommand.run(" ".join(cmd))
@@ -118,43 +120,47 @@ def handle_core_command(command: str, args: Any) -> bool:
                     GitCommand.run(" ".join(cmd))
                 else:
                     raise
-            
+
             # Push if requested
             if not getattr(args, "no_push", False):
                 current_branch = GitCommand.get_current_branch()
                 GitCommand.run(f"git push origin {current_branch}")
-            
+
             return True
-            
+
         elif command == "all":
             # Check for any changes first
             status = GitCommand.run("git status --porcelain")
             if not status.strip():
                 print("No changes to commit.")
                 return True
-                
+
             # Check for sensitive files
-            sensitive_files = ['.pypirc', '.env', '.env.*', '*.key', '*.pem', '*.crt']
+            sensitive_files = [".pypirc", ".env", ".env.*", "*.key", "*.pem", "*.crt"]
             for file in sensitive_files:
                 if os.path.exists(file):
-                    print(f"⚠️  Warning: Found sensitive file '{file}'. Please ensure it's in .gitignore")
-                    print("   Consider using environment variables or a secure secret management system")
+                    print(
+                        f"⚠️  Warning: Found sensitive file '{file}'. Please ensure it's in .gitignore"
+                    )
+                    print(
+                        "   Consider using environment variables or a secure secret management system"
+                    )
                     return False
-                
+
             # Stage all changes
             GitCommand.run("git add .")
-            
+
             # Get commit message with "Update" as default
             message = getattr(args, "m", None)
             if message is None:
                 message = "Update"
-            
+
             # Build commit command
             cmd = ["git commit"]
             if getattr(args, "amend", False):
                 cmd.append("--amend")
             cmd.append(f"-m '{message}'")
-            
+
             # Try to commit with GPG signing first
             try:
                 GitCommand.run(" ".join(cmd))
@@ -165,94 +171,106 @@ def handle_core_command(command: str, args: Any) -> bool:
                     GitCommand.run(" ".join(cmd))
                 else:
                     raise
-            
+
             # Push if requested
             if not getattr(args, "no_push", False):
                 current_branch = GitCommand.get_current_branch()
                 # Always force push for 'all' command
                 push_cmd = f"git push -f origin {current_branch}"
                 GitCommand.run(push_cmd)
-            
+
             return True
-            
+
         elif command == "first":
             # Initialize git repository
             GitCommand.run("git init")
-            
+
             # Get repository details
             remote_url = getattr(args, "remote", None)
             is_private = getattr(args, "private", False)
             template = getattr(args, "template", None)
             description = getattr(args, "description", "")
-            
+
             if remote_url:
                 # Add remote
                 GitCommand.add_remote("origin", remote_url)
-                
+
                 # Create initial commit
                 GitCommand.run("git add .")
                 GitCommand.run("git commit -m 'Initial commit'")
-                
+
                 # Push to remote
                 GitCommand.run("git push -u origin main")
-                
+
                 # Set repository description if provided
                 if description:
                     # Note: This requires GitHub CLI (gh) to be installed
                     try:
-                        subprocess.run(["gh", "repo", "edit", remote_url, "--description", description], check=True)
+                        subprocess.run(
+                            [
+                                "gh",
+                                "repo",
+                                "edit",
+                                remote_url,
+                                "--description",
+                                description,
+                            ],
+                            check=True,
+                        )
                     except subprocess.CalledProcessError:
-                        print("Warning: Could not set repository description. GitHub CLI may not be installed.")
-            
+                        print(
+                            "Warning: Could not set repository description. GitHub CLI may not be installed."
+                        )
+
             return True
-            
+
         elif command == "reverse":
             # Get patterns to untrack
             patterns = getattr(args, "patterns", "*").split(",")
             keep_files = getattr(args, "keep", True)
             force = getattr(args, "force", False)
-            
+
             for pattern in patterns:
                 # Remove files from git tracking
                 GitCommand.run(f"git rm --cached {pattern}")
-                
+
                 if not keep_files:
                     # Remove files from filesystem
                     GitCommand.run(f"rm -rf {pattern}")
-            
+
             return True
-            
+
         elif command == "expel":
             # Get all tracked files
             tracked_files = GitCommand.run("git ls-files").split("\n")
-            
+
             # Get exclude patterns
             exclude_patterns = getattr(args, "exclude", "").split(",")
             keep_files = getattr(args, "keep", True)
             force = getattr(args, "force", False)
-            
+
             # Remove each file from git tracking
             for file in tracked_files:
                 # Skip excluded files
                 if any(file.startswith(pattern) for pattern in exclude_patterns):
                     continue
-                    
+
                 GitCommand.run(f"git rm --cached {file}")
-                
+
                 if not keep_files:
                     # Remove files from filesystem
                     GitCommand.run(f"rm -rf {file}")
-            
+
             return True
-            
+
         return False
-        
+
     except Exception as e:
         logger.log(
             level="error",
             command=command,
             message=str(e),
-            metadata={"error_type": "core_command"}
+            metadata={"error_type": "core_command"},
         )
         print(f"Error executing {command}: {e}")
         return False
@@ -474,7 +492,7 @@ def first() -> None:
             try:
                 with open("README.md", "w") as f:
                     f.write("# New Repository\n\nInitialized with qgit first command.")
-            except IOError as e:
+            except OSError as e:
                 raise FileOperationError("Failed to create README.md", str(e))
 
         # Stage and commit
@@ -504,5 +522,5 @@ def first() -> None:
         print(format_error(e))
         raise
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")
+        print(f"Unexpected error: {e!s}")
         raise

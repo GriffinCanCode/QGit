@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
 from datetime import datetime
-from typing import Any, Dict, List
-
 from qgits.qgit_errors import (
+    format_error,
     GitCommandError,
     GitRepositoryError,
     GitStateError,
-    format_error,
 )
 from qgits.qgit_git import GitCommand
 from qgits.qgit_snapshot import create_snapshot
+from typing import (
+    Any,
+    Dict,
+    List,
+)
 
 
 def analyze_operations(operations: List[str]) -> List[Dict[str, Any]]:

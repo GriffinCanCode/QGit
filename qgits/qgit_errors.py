@@ -5,7 +5,10 @@ This module provides a centralized error handling system with custom exceptions
 for different types of Git operations and QGit functionality.
 """
 
-from typing import Any, Optional
+from typing import (
+    Any,
+    Optional,
+)
 
 
 class QGitError(Exception):
@@ -131,4 +134,4 @@ def format_error(error: Exception) -> str:
             message += f"\n💡 Details: {error.details}"
         return message
 
-    return f"❌ {str(error)}"
+    return f"❌ {error!s}"

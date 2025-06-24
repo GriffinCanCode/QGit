@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 
-import curses
 import logging
-import math
 import os
+import sys
+import curses
+from itertools import cycle
+import math
 import random
 import subprocess
-import sys
 import time
-from itertools import cycle
+
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stderr)],
 )
+
 
 def load_environment():
     """Load environment variables from .env file"""
@@ -55,9 +57,9 @@ except ImportError:
 QGIT_LOGO = """\
      ██████╗█╗██████╗ ██╗████████╗
     ██╔═══██╗██╔════╝ ██║╚══██╔══╝
-    ██║   ██║██║  ███╗██║   ██║   
-    ██║▄▄ ██║██║   ██║██║   ██║   
-    ╚██████╔╝╚██████╔╝██║   ██║   
+    ██║   ██║██║  ███╗██║   ██║
+    ██║▄▄ ██║██║   ██║██║   ██║
+    ╚██████╔╝╚██████╔╝██║   ██║
      ╚══▀▀═╝▄╚═════╝ ╚═╝   ╚═╝   """
 
 
@@ -97,7 +99,6 @@ class SecretSauceWindow:
 
     def __init__(self, stdscr):
         self.stdscr = stdscr
-
 
     def draw_border(self, y, x, height, width):
         """Draw a stylish border around the window."""
@@ -1181,8 +1182,7 @@ class LandingPage:
         menu_height = len(self.MENU_ITEMS) * 2 + 4
 
         # Ensure menu fits in terminal
-        if menu_height > max_y - 16:  # Account for logo and margins
-            menu_height = max_y - 16
+        menu_height = min(menu_height, max_y - 16)
 
         # Calculate starting positions
         menu_start_y = min(14, max_y - menu_height - 4)  # Ensure menu fits vertically
@@ -1254,13 +1254,10 @@ class LandingPage:
                 if i == self.current_selection or self.effects_enabled:
                     self.decryption_effect.highlight_position(menu_start_x, y)
                     self.decryption_effect.highlight_position(menu_start_x + 20, y)
-                else:
-                    # Only unhighlight if easter egg is not activated
-                    if not self.effects_enabled:
-                        self.decryption_effect.unhighlight_position(menu_start_x, y)
-                        self.decryption_effect.unhighlight_position(
-                            menu_start_x + 20, y
-                        )
+                # Only unhighlight if easter egg is not activated
+                elif not self.effects_enabled:
+                    self.decryption_effect.unhighlight_position(menu_start_x, y)
+                    self.decryption_effect.unhighlight_position(menu_start_x + 20, y)
 
                 # Draw menu item with decryption effect
                 item_text = f"{emoji}  {action.ljust(10)}"
@@ -1314,33 +1311,32 @@ class LandingPage:
                             self.stdscr.addstr(
                                 y, menu_start_x + 20, desc_text, curses.color_pair(5)
                             )
+                elif should_decrypt:
+                    self.stdscr.addstr(
+                        y,
+                        menu_start_x,
+                        current_text,
+                        curses.color_pair(1) | curses.A_BOLD,
+                    )
+                    desc_text = self.decryption_effect.get_text(
+                        menu_start_x + 20, y, description
+                    )
+                    self.stdscr.addstr(
+                        y,
+                        menu_start_x + 20,
+                        desc_text,
+                        curses.color_pair(3) | curses.A_BOLD,
+                    )
                 else:
-                    if should_decrypt:
-                        self.stdscr.addstr(
-                            y,
-                            menu_start_x,
-                            current_text,
-                            curses.color_pair(1) | curses.A_BOLD,
-                        )
-                        desc_text = self.decryption_effect.get_text(
-                            menu_start_x + 20, y, description
-                        )
-                        self.stdscr.addstr(
-                            y,
-                            menu_start_x + 20,
-                            desc_text,
-                            curses.color_pair(3) | curses.A_BOLD,
-                        )
-                    else:
-                        self.stdscr.addstr(
-                            y, menu_start_x, current_text, curses.color_pair(4)
-                        )
-                        desc_text = self.decryption_effect.get_text(
-                            menu_start_x + 20, y, description
-                        )
-                        self.stdscr.addstr(
-                            y, menu_start_x + 20, desc_text, curses.color_pair(5)
-                        )
+                    self.stdscr.addstr(
+                        y, menu_start_x, current_text, curses.color_pair(4)
+                    )
+                    desc_text = self.decryption_effect.get_text(
+                        menu_start_x + 20, y, description
+                    )
+                    self.stdscr.addstr(
+                        y, menu_start_x + 20, desc_text, curses.color_pair(5)
+                    )
 
             # Draw all visual effects
             self.decryption_effect.draw_effects(self.stdscr)
@@ -1699,7 +1695,7 @@ class HelpPage:
                         self.stdscr.addstr(start_y, x + j, " ", attr)
                     except curses.error as e:
                         logging.error(
-                            f"Failed to draw tab background at ({start_y}, {x + j}): {str(e)}"
+                            f"Failed to draw tab background at ({start_y}, {x + j}): {e!s}"
                         )
                         continue
 
@@ -1715,7 +1711,7 @@ class HelpPage:
                         self.stdscr.addstr(start_y, tab_x, tab_text, attr)
                     except curses.error as e:
                         logging.error(
-                            f"Failed to draw tab text at ({start_y}, {tab_x}): {str(e)}"
+                            f"Failed to draw tab text at ({start_y}, {tab_x}): {e!s}"
                         )
                         continue
 
@@ -1727,12 +1723,12 @@ class HelpPage:
                         )
                     except curses.error as e:
                         logging.error(
-                            f"Failed to draw separator at ({start_y}, {x + tab_width - 1}): {str(e)}"
+                            f"Failed to draw separator at ({start_y}, {x + tab_width - 1}): {e!s}"
                         )
                         continue
 
         except Exception as e:
-            logging.critical(f"Unexpected error in draw_tabs: {str(e)}", exc_info=True)
+            logging.critical(f"Unexpected error in draw_tabs: {e!s}", exc_info=True)
             raise
 
     def draw_search_bar(self, y, width):
@@ -1854,13 +1850,17 @@ class HelpPage:
             # Adjust scroll position if needed
             if self.selected_item * 3 < self.scroll_position:
                 self.scroll_position = max(0, self.selected_item * 3)
-        elif key == curses.KEY_DOWN and self.selected_item < len(self.CONTENT[self.TABS[self.current_tab]]) - 1:
+        elif (
+            key == curses.KEY_DOWN
+            and self.selected_item < len(self.CONTENT[self.TABS[self.current_tab]]) - 1
+        ):
             self.selected_item += 1
             # Adjust scroll position if needed
-            if (self.selected_item + 1) * 3 > self.scroll_position + self.content_height:
+            if (
+                self.selected_item + 1
+            ) * 3 > self.scroll_position + self.content_height:
                 self.scroll_position = min(
-                    self.max_scroll,
-                    (self.selected_item + 1) * 3 - self.content_height
+                    self.max_scroll, (self.selected_item + 1) * 3 - self.content_height
                 )
         elif key == ord("\n"):
             # Handle selection
@@ -1877,7 +1877,7 @@ class HelpPage:
         """Handle mouse click events."""
         # Get terminal dimensions
         height, width = self.stdscr.getmaxyx()
-        
+
         # Check if click is in tab area
         if y == 1:
             tab_width = width // len(self.TABS)
@@ -1887,7 +1887,7 @@ class HelpPage:
                 self.scroll_position = 0
                 self.selected_item = 0
                 return
-        
+
         # Check if click is in content area
         content_start_y = 4  # Start after tabs
         if y >= content_start_y:
@@ -1896,10 +1896,12 @@ class HelpPage:
             if 0 <= item_index < len(current_content):
                 self.selected_item = item_index
                 # Adjust scroll position if needed
-                if (self.selected_item + 1) * 3 > self.scroll_position + self.content_height:
+                if (
+                    self.selected_item + 1
+                ) * 3 > self.scroll_position + self.content_height:
                     self.scroll_position = min(
                         self.max_scroll,
-                        (self.selected_item + 1) * 3 - self.content_height
+                        (self.selected_item + 1) * 3 - self.content_height,
                     )
                 elif self.selected_item * 3 < self.scroll_position:
                     self.scroll_position = max(0, self.selected_item * 3)
@@ -1995,14 +1997,14 @@ def run_gui():
             logging.info(f"GUI completed with result: {result}")
             return result
         except Exception as e:
-            logging.critical(f"Error in GUI: {str(e)}", exc_info=True)
+            logging.critical(f"Error in GUI: {e!s}", exc_info=True)
             raise
 
     try:
         return curses.wrapper(_run_landing_page)
     except Exception as e:
-        logging.critical(f"Error launching GUI: {str(e)}", exc_info=True)
-        print(f"Error launching GUI: {str(e)}")
+        logging.critical(f"Error launching GUI: {e!s}", exc_info=True)
+        print(f"Error launching GUI: {e!s}")
         return None
 
 
@@ -2016,14 +2018,14 @@ def show_help():
             help_page.run()
             logging.info("Help page closed")
         except Exception as e:
-            logging.critical(f"Error in help page: {str(e)}", exc_info=True)
+            logging.critical(f"Error in help page: {e!s}", exc_info=True)
             raise
 
     try:
         curses.wrapper(_run_help_page)
     except Exception as e:
-        logging.critical(f"Error showing help: {str(e)}", exc_info=True)
-        print(f"Error showing help: {str(e)}")
+        logging.critical(f"Error showing help: {e!s}", exc_info=True)
+        print(f"Error showing help: {e!s}")
 
 
 def show_author_screen():
@@ -2031,70 +2033,78 @@ def show_author_screen():
     logging.info("Showing author screen")
     try:
         # Import author data
-        from .qgit_author_data import (
-            GRIFFIN_FACTS, GRIFFIN_QUOTES, DAILY_ADVICE, GRIFFIN_LOGO, SEIZE_MODE_TEXT
-        )
-        
+
         curses.wrapper(_run_author_screen)
     except Exception as e:
-        logging.critical(f"Error showing author screen: {str(e)}", exc_info=True)
+        logging.critical(f"Error showing author screen: {e!s}", exc_info=True)
         # Fallback to plain text if GUI fails
         print("\n" + "=" * 40)
         print("  GRIFFIN: THE PROGRAMMING GOD")
         print("=" * 40)
-        
+
         try:
-            from .qgit_author_data import get_random_facts, get_random_quote, get_random_advice
+            from .qgit_author_data import (
+                get_random_advice,
+                get_random_facts,
+                get_random_quote,
+            )
+
             print("\nFun Facts:")
             for i, fact in enumerate(get_random_facts(3), 1):
                 print(f"{i}. {fact}")
-            
+
             print("\nWords of Wisdom:")
             print(f'"{get_random_quote()}"')
-            
+
             print("\nDaily Advice:")
             print(get_random_advice())
         except ImportError:
-            print("\nCouldn't load author data, but Griffin is still a programming god.")
-            
+            print(
+                "\nCouldn't load author data, but Griffin is still a programming god."
+            )
+
         print("\n" + "=" * 40 + "\n")
+
 
 def _run_author_screen(stdscr):
     """Internal function to run the author screen with curses."""
     try:
         # Import author data
         from .qgit_author_data import (
-            GRIFFIN_FACTS, GRIFFIN_QUOTES, DAILY_ADVICE, 
-            GRIFFIN_LOGO, SEIZE_MODE_TEXT
+            DAILY_ADVICE,
+            GRIFFIN_FACTS,
+            GRIFFIN_LOGO,
+            GRIFFIN_QUOTES,
+            SEIZE_MODE_TEXT,
         )
-        
+
         # Initialize screen
         curses.curs_set(0)  # Hide cursor
         stdscr.clear()
-        
+
         # Get screen dimensions
         height, width = stdscr.getmaxyx()
-        
+
         # Check terminal size is adequate
         min_height, min_width = 24, 60
         if height < min_height or width < min_width:
             _show_terminal_too_small(stdscr)
             return
-        
+
         # Initialize colors
         curses.start_color()
         curses.use_default_colors()
-        curses.init_pair(1, curses.COLOR_CYAN, -1)     # Title
-        curses.init_pair(2, curses.COLOR_YELLOW, -1)   # Subtitle
-        curses.init_pair(3, curses.COLOR_WHITE, -1)    # Text
-        curses.init_pair(4, curses.COLOR_GREEN, -1)    # Highlight
+        curses.init_pair(1, curses.COLOR_CYAN, -1)  # Title
+        curses.init_pair(2, curses.COLOR_YELLOW, -1)  # Subtitle
+        curses.init_pair(3, curses.COLOR_WHITE, -1)  # Text
+        curses.init_pair(4, curses.COLOR_GREEN, -1)  # Highlight
         curses.init_pair(5, curses.COLOR_MAGENTA, -1)  # Quote
-        curses.init_pair(6, curses.COLOR_RED, -1)      # Warning
-        
+        curses.init_pair(6, curses.COLOR_RED, -1)  # Warning
+
         # Set up animation
         particles = []
         last_time = time.time()
-        
+
         # Content state
         author_name = "Griffin"
         author_title = "Programming God & QGit Creator"
@@ -2103,22 +2113,22 @@ def _run_author_screen(stdscr):
         advice = random.choice(DAILY_ADVICE)
         seize_mode_active = False
         exit_requested = False
-        
+
         # Enhanced animation class using matrix rain effect
         matrix_rain = MatrixRain(stdscr)
-        
+
         # Main loop
         while not exit_requested:
             # Get terminal dimensions (check for resize)
             height, width = stdscr.getmaxyx()
-            
+
             # Clear screen
             stdscr.clear()
-            
+
             # Update matrix rain for background effect
             if seize_mode_active:
                 matrix_rain.update()
-            
+
             # Draw content based on state
             if seize_mode_active:
                 _draw_seize_mode(stdscr, SEIZE_MODE_TEXT, particles, height, width)
@@ -2126,9 +2136,9 @@ def _run_author_screen(stdscr):
             else:
                 # Draw main display
                 _draw_author_display(
-                    stdscr, 
-                    GRIFFIN_LOGO, 
-                    author_name, 
+                    stdscr,
+                    GRIFFIN_LOGO,
+                    author_name,
                     author_title,
                     GRIFFIN_FACTS,
                     GRIFFIN_QUOTES,
@@ -2136,31 +2146,31 @@ def _run_author_screen(stdscr):
                     selected_fact,
                     selected_quote,
                     particles,
-                    height, 
-                    width
+                    height,
+                    width,
                 )
-                
+
             # Update particle animations
             _update_particles(stdscr, particles, last_time, height, width)
             last_time = time.time()
-            
+
             # Add controls info
             controls_y = height - 2
             controls_text = "N: New fact | Q: New quote | G: SEIZE MODE | ESC: Exit"
             if len(controls_text) > width - 2:
                 controls_text = "N/Q/G/ESC"
             _center_text(stdscr, controls_y, controls_text, 4, width)
-            
+
             # Refresh the screen
             stdscr.refresh()
-            
+
             # Handle user input with timeout for animations
             stdscr.timeout(50)
             key = stdscr.getch()
-            
+
             if key == 27:  # ESC key
                 exit_requested = True
-            elif key == ord('n') or key == ord('N'):
+            elif key == ord("n") or key == ord("N"):
                 # New random fact
                 new_fact = random.randint(0, len(GRIFFIN_FACTS) - 1)
                 while new_fact == selected_fact and len(GRIFFIN_FACTS) > 1:
@@ -2168,7 +2178,7 @@ def _run_author_screen(stdscr):
                 selected_fact = new_fact
                 # Add particle effects
                 _add_particle_burst(particles, width // 2, height // 3, 10)
-            elif key == ord('q') or key == ord('Q'):
+            elif key == ord("q") or key == ord("Q"):
                 # New random quote
                 new_quote = random.randint(0, len(GRIFFIN_QUOTES) - 1)
                 while new_quote == selected_quote and len(GRIFFIN_QUOTES) > 1:
@@ -2176,113 +2186,143 @@ def _run_author_screen(stdscr):
                 selected_quote = new_quote
                 # Add particle effects
                 _add_particle_burst(particles, width // 2, height // 2, 10)
-            elif key == ord('g') or key == ord('G'):
+            elif key == ord("g") or key == ord("G"):
                 # Activate GOD MODE
                 seize_mode_active = True
                 # Add lots of particles
                 for _ in range(20):
-                    _add_particle_burst(particles, 
-                                      random.randint(0, width-1), 
-                                      random.randint(0, height-1), 
-                                      count=5)
+                    _add_particle_burst(
+                        particles,
+                        random.randint(0, width - 1),
+                        random.randint(0, height - 1),
+                        count=5,
+                    )
             elif key == curses.KEY_RESIZE:
                 # Terminal was resized
                 if height < min_height or width < min_width:
                     _show_terminal_too_small(stdscr)
-    
+
     except Exception as e:
-        logging.error(f"Error in author screen: {str(e)}", exc_info=True)
+        logging.error(f"Error in author screen: {e!s}", exc_info=True)
         curses.endwin()
         raise e
 
-def _draw_author_display(stdscr, logo, name, title, facts, quotes, advice, 
-                        selected_fact, selected_quote, particles, height, width):
+
+def _draw_author_display(
+    stdscr,
+    logo,
+    name,
+    title,
+    facts,
+    quotes,
+    advice,
+    selected_fact,
+    selected_quote,
+    particles,
+    height,
+    width,
+):
     """Draw the main author display with all content."""
     # Draw logo with enhanced border
-    logo_lines = logo.strip().split('\n')
+    logo_lines = logo.strip().split("\n")
     start_y = 2
-    
+
     # Make sure logo fits in the terminal
     if len(logo_lines) > height - 10:
         # Use a simpler logo if needed
         logo_lines = ["Griffin, the Programming God"]
-    
+
     # Draw animated cosmic border around the logo
     logo_width = max(len(line) for line in logo_lines)
     border_width = logo_width + 8
     border_height = len(logo_lines) + 4
     border_x = (width - border_width) // 2
-    
+
     # Draw cosmic border with animated effects
-    _draw_cosmic_border(stdscr, start_y - 2, border_x, border_height, border_width, time.time())
-    
+    _draw_cosmic_border(
+        stdscr, start_y - 2, border_x, border_height, border_width, time.time()
+    )
+
     # Draw logo with glow effect
     glow = abs(math.sin(time.time() * 2))
     logo_color = 1 if glow > 0.5 else 6  # Alternate between cyan and white
-    
+
     for i, line in enumerate(logo_lines):
         if start_y + i < height:
             _center_text(stdscr, start_y + i, line, logo_color | curses.A_BOLD, width)
-    
+
     # Calculate positions
     logo_height = len(logo_lines)
     content_start_y = min(logo_height + 6, height // 4)
-    
+
     # Draw border around content area with enhanced styling
     try:
         content_width = min(width - 10, 70)
         content_height = height - content_start_y - 3
         content_x = (width - content_width) // 2
-        _draw_fancy_border(stdscr, content_start_y - 1, content_x, content_height, content_width, time.time())
+        _draw_fancy_border(
+            stdscr,
+            content_start_y - 1,
+            content_x,
+            content_height,
+            content_width,
+            time.time(),
+        )
     except curses.error:
         pass  # Ignore drawing errors
-    
+
     # Author name and title with pulsing effect
     if content_start_y < height - 10:
-        name_attr = curses.color_pair(1) | curses.A_BOLD if glow > 0.5 else curses.color_pair(1)
-        title_attr = curses.color_pair(2) | curses.A_BOLD if glow < 0.5 else curses.color_pair(2)
-        
+        name_attr = (
+            curses.color_pair(1) | curses.A_BOLD if glow > 0.5 else curses.color_pair(1)
+        )
+        title_attr = (
+            curses.color_pair(2) | curses.A_BOLD if glow < 0.5 else curses.color_pair(2)
+        )
+
         _center_text_with_attr(stdscr, content_start_y, name, name_attr, width)
         _center_text_with_attr(stdscr, content_start_y + 1, title, title_attr, width)
-    
+
     # Animated separator
     separator_width = min(width - 20, 40)
     separator_chars = "═♦═"
     separator_pos = int(time.time() * 4) % len(separator_chars)
     separator = separator_chars[separator_pos] * separator_width
-    
+
     if content_start_y + 3 < height - 8:
         _center_text(stdscr, content_start_y + 3, separator, 4, width)
-    
+
     # Random fact with enhanced styling
     fact_y = content_start_y + 5
     if fact_y < height - 6:
         # Draw header with pulsing effect
         header_attr = curses.color_pair(2) | (curses.A_BOLD if glow > 0.7 else 0)
         _center_text_with_attr(stdscr, fact_y, "DID YOU KNOW?", header_attr, width)
-        
+
         fact_text = facts[selected_fact]
         # Wrap the fact text if it's too long
         max_line_width = min(width - 20, 60)
         wrapped_text = _wrap_text(fact_text, max_line_width)
-        
+
         # Draw fact with subtle highlight
         for i, line in enumerate(wrapped_text):
             if fact_y + 2 + i < height - 4:
                 _center_text(stdscr, fact_y + 2 + i, line, 3, width)
-    
+
     # Quote instead of advice with enhanced styling
-    quote_y = min(fact_y + 2 + len(_wrap_text(facts[selected_fact], min(width - 20, 60))) + 1,
-                  height - 10)
+    quote_y = min(
+        fact_y + 2 + len(_wrap_text(facts[selected_fact], min(width - 20, 60))) + 1,
+        height - 10,
+    )
     if quote_y < height - 4:
         # Draw header with pulsing effect
         header_attr = curses.color_pair(2) | (curses.A_BOLD if glow < 0.3 else 0)
         _center_text_with_attr(stdscr, quote_y, "WORDS OF WISDOM", header_attr, width)
-        
+
         quote_text = f'"{quotes[selected_quote]}"'
         max_line_width = min(width - 20, 60)
         wrapped_text = _wrap_text(quote_text, max_line_width)
-        
+
         # Draw quote with enhanced styling
         for i, line in enumerate(wrapped_text):
             if quote_y + 2 + i < height - 2:
@@ -2290,78 +2330,111 @@ def _draw_author_display(stdscr, logo, name, title, facts, quotes, advice,
                 # Color gradient effect based on position in quote
                 color = 5 if line_pos < 0.5 else 1
                 _center_text(stdscr, quote_y + 2 + i, line, color, width)
-                
+
                 # Add subtle star particles around the quote
                 if random.random() < 0.1:
-                    star_x = random.randint(content_x + 5, content_x + content_width - 5)
-                    star_char = random.choice(['✦', '✧', '⋆', '✴'])
+                    star_x = random.randint(
+                        content_x + 5, content_x + content_width - 5
+                    )
+                    star_char = random.choice(["✦", "✧", "⋆", "✴"])
                     try:
-                        stdscr.addstr(quote_y + 2 + i, star_x, star_char, curses.color_pair(4))
+                        stdscr.addstr(
+                            quote_y + 2 + i, star_x, star_char, curses.color_pair(4)
+                        )
                     except curses.error:
                         pass
+
 
 def _draw_seize_mode(stdscr, text, particles, height, width):
     """Transform the UI into dramatic SEIZE MODE with enhanced visual effects."""
     # Don't clear the screen, transform it
-    
+
     # Create intense background effect
     for y in range(height):
         for x in range(0, width, 4):  # Skip characters for performance
             if random.random() < 0.05:  # Sparse matrix effect
-                char = random.choice(['✧', '✦', '✵', '✴', '✸', '⚡', '⭒', '⭑', '∴'])
+                char = random.choice(["✧", "✦", "✵", "✴", "✸", "⚡", "⭒", "⭑", "∴"])
                 try:
-                    stdscr.addstr(y, x, char, curses.color_pair(random.choice([1, 2, 4, 6])))
+                    stdscr.addstr(
+                        y, x, char, curses.color_pair(random.choice([1, 2, 4, 6]))
+                    )
                 except curses.error:
                     pass
-    
+
     # Draw dramatic god mode text with pulsing effect
-    seize_mode_lines = text.strip().split('\n')
-    
+    seize_mode_lines = text.strip().split("\n")
+
     # Make sure text fits in the terminal
     if len(seize_mode_lines) > height - 2:
         seize_mode_lines = ["SEIZE MODE ACTIVATED!"]
-        
+
     start_y = max(0, (height - len(seize_mode_lines)) // 2)
-    
+
     # Dramatic border around SEIZE MODE text
     border_width = max(len(line) for line in seize_mode_lines) + 10
     border_height = len(seize_mode_lines) + 4
     border_x = (width - border_width) // 2
-    
+
     # Draw dramatic pulsing border
     pulse = abs(math.sin(time.time() * 6))  # Faster pulsing
     border_color = 6 if pulse > 0.5 else 1  # Alternate colors
-    
+
     try:
         # Top and bottom borders with zig-zag pattern
         zigzag = "≈" * (border_width - 2)
-        stdscr.addstr(start_y - 2, border_x, "╔" + zigzag + "╗", curses.color_pair(border_color) | curses.A_BOLD)
-        stdscr.addstr(start_y + border_height - 2, border_x, "╚" + zigzag + "╝", curses.color_pair(border_color) | curses.A_BOLD)
-        
+        stdscr.addstr(
+            start_y - 2,
+            border_x,
+            "╔" + zigzag + "╗",
+            curses.color_pair(border_color) | curses.A_BOLD,
+        )
+        stdscr.addstr(
+            start_y + border_height - 2,
+            border_x,
+            "╚" + zigzag + "╝",
+            curses.color_pair(border_color) | curses.A_BOLD,
+        )
+
         # Side borders with lightning pattern
         for i in range(border_height - 2):
             left_char = "⚡" if i % 2 == 0 else "║"
             right_char = "⚡" if i % 2 == 1 else "║"
-            stdscr.addstr(start_y - 1 + i, border_x, left_char, curses.color_pair(border_color) | curses.A_BOLD)
-            stdscr.addstr(start_y - 1 + i, border_x + border_width - 1, right_char, curses.color_pair(border_color) | curses.A_BOLD)
+            stdscr.addstr(
+                start_y - 1 + i,
+                border_x,
+                left_char,
+                curses.color_pair(border_color) | curses.A_BOLD,
+            )
+            stdscr.addstr(
+                start_y - 1 + i,
+                border_x + border_width - 1,
+                right_char,
+                curses.color_pair(border_color) | curses.A_BOLD,
+            )
     except curses.error:
         pass
-    
+
     # Draw SEIZE MODE text with dramatic color alternation
     for i, line in enumerate(seize_mode_lines):
         if start_y + i < height:
             line_color = 6 if i % 2 == 0 else 1
-            _center_text_with_attr(stdscr, start_y + i, line, curses.color_pair(line_color) | curses.A_BOLD, width)
-    
+            _center_text_with_attr(
+                stdscr,
+                start_y + i,
+                line,
+                curses.color_pair(line_color) | curses.A_BOLD,
+                width,
+            )
+
     # Add intense particle effects
     for _ in range(min(30, width // 3)):
         _add_particle_burst(
             particles,
             random.randint(0, width - 1),
             random.randint(0, height - 1),
-            count=8
+            count=8,
         )
-    
+
     # Show dramatic message below SEIZE MODE text
     message_y = start_y + len(seize_mode_lines) + 2
     if message_y < height - 1:
@@ -2371,57 +2444,77 @@ def _draw_seize_mode(stdscr, text, particles, height, width):
             # Alternate the colors for each character
             for j, char in enumerate(message):
                 char_color = 1 if j % 2 == 0 else 6
-                stdscr.addstr(message_y, message_x + j, char, curses.color_pair(char_color) | curses.A_BOLD)
+                stdscr.addstr(
+                    message_y,
+                    message_x + j,
+                    char,
+                    curses.color_pair(char_color) | curses.A_BOLD,
+                )
         except curses.error:
             pass
+
 
 def _draw_cosmic_border(stdscr, y, x, height, width, current_time):
     """Draw an animated cosmic border with stars and particles."""
     try:
         # Define corner and edge characters
         corners = ["╔", "╗", "╚", "╝"]
-        
+
         # Animated edge characters that change over time
         edge_chars = ["═", "≡", "≈", "≣"]
         edge_index = int(current_time * 2) % len(edge_chars)
         edge_char = edge_chars[edge_index]
-        
+
         # Side characters
         side_chars = ["║", "│", "┃"]
         side_index = int(current_time * 1.5) % len(side_chars)
         side_char = side_chars[side_index]
-        
+
         # Draw corners
         stdscr.addstr(y, x, corners[0], curses.color_pair(5) | curses.A_BOLD)
-        stdscr.addstr(y, x + width - 1, corners[1], curses.color_pair(5) | curses.A_BOLD)
-        stdscr.addstr(y + height - 1, x, corners[2], curses.color_pair(5) | curses.A_BOLD)
-        stdscr.addstr(y + height - 1, x + width - 1, corners[3], curses.color_pair(5) | curses.A_BOLD)
-        
+        stdscr.addstr(
+            y, x + width - 1, corners[1], curses.color_pair(5) | curses.A_BOLD
+        )
+        stdscr.addstr(
+            y + height - 1, x, corners[2], curses.color_pair(5) | curses.A_BOLD
+        )
+        stdscr.addstr(
+            y + height - 1,
+            x + width - 1,
+            corners[3],
+            curses.color_pair(5) | curses.A_BOLD,
+        )
+
         # Draw top and bottom edges with animation
         for i in range(1, width - 1):
             stdscr.addstr(y, x + i, edge_char, curses.color_pair(5) | curses.A_BOLD)
-            stdscr.addstr(y + height - 1, x + i, edge_char, curses.color_pair(5) | curses.A_BOLD)
-        
+            stdscr.addstr(
+                y + height - 1, x + i, edge_char, curses.color_pair(5) | curses.A_BOLD
+            )
+
         # Draw sides with animation
         for i in range(1, height - 1):
             stdscr.addstr(y + i, x, side_char, curses.color_pair(5) | curses.A_BOLD)
-            stdscr.addstr(y + i, x + width - 1, side_char, curses.color_pair(5) | curses.A_BOLD)
-            
+            stdscr.addstr(
+                y + i, x + width - 1, side_char, curses.color_pair(5) | curses.A_BOLD
+            )
+
         # Add cosmic particles inside the border
         if random.random() < 0.3:  # Only occasionally add stars for performance
             star_x = random.randint(x + 1, x + width - 2)
             star_y = random.randint(y + 1, y + height - 2)
-            star = random.choice(['✦', '✧', '⋆', '★', '☆', '*'])
+            star = random.choice(["✦", "✧", "⋆", "★", "☆", "*"])
             stdscr.addstr(star_y, star_x, star, curses.color_pair(4))
     except curses.error:
         pass  # Ignore drawing errors outside the window
+
 
 def _draw_fancy_border(stdscr, y, x, height, width, current_time=None):
     """Draw a stylish border around the specified area with animation if current_time is provided."""
     # Ensure we're within bounds
     if y < 0 or x < 0 or y + height > curses.LINES or x + width > curses.COLS:
         return
-    
+
     # Choose border style based on time for animation
     if current_time:
         phase = (current_time * 2) % 4
@@ -2440,14 +2533,14 @@ def _draw_fancy_border(stdscr, y, x, height, width, current_time=None):
     else:
         h_char, v_char = "═", "║"
         tl, tr, bl, br = "╔", "╗", "╚", "╝"
-    
+
     # Get color based on time for animation
     color = 4  # Default color
     if current_time:
         colors = [4, 6, 1, 5]  # Cycle through different colors
         color_idx = int(current_time * 1.5) % len(colors)
         color = colors[color_idx]
-        
+
     try:
         # Top and bottom borders
         for i in range(1, width - 1):
@@ -2455,14 +2548,14 @@ def _draw_fancy_border(stdscr, y, x, height, width, current_time=None):
                 stdscr.addstr(y, x + i, h_char, curses.color_pair(color))
             if 0 <= y + height - 1 < curses.LINES and 0 <= x + i < curses.COLS:
                 stdscr.addstr(y + height - 1, x + i, h_char, curses.color_pair(color))
-        
+
         # Left and right borders
         for i in range(1, height - 1):
             if 0 <= y + i < curses.LINES and 0 <= x < curses.COLS:
                 stdscr.addstr(y + i, x, v_char, curses.color_pair(color))
             if 0 <= y + i < curses.LINES and 0 <= x + width - 1 < curses.COLS:
                 stdscr.addstr(y + i, x + width - 1, v_char, curses.color_pair(color))
-        
+
         # Corners
         if 0 <= y < curses.LINES and 0 <= x < curses.COLS:
             stdscr.addstr(y, x, tl, curses.color_pair(color))
@@ -2475,11 +2568,12 @@ def _draw_fancy_border(stdscr, y, x, height, width, current_time=None):
     except curses.error:
         pass  # Ignore drawing errors
 
+
 def _center_text_with_attr(stdscr, row, text, attr, width):
     """Center text on the specified row with the given attribute."""
     if row < 0 or row >= curses.LINES:
         return
-        
+
     x = max(0, (width - len(text)) // 2)
     try:
         if 0 <= row < curses.LINES and 0 <= x < curses.COLS:
@@ -2491,37 +2585,39 @@ def _center_text_with_attr(stdscr, row, text, attr, width):
     except curses.error:
         pass  # Ignore errors when writing outside bounds
 
+
 def _show_terminal_too_small(stdscr):
     """Show a message when terminal is too small."""
     stdscr.clear()
     try:
         height, width = stdscr.getmaxyx()
-        
+
         message1 = "Terminal too small!"
         message2 = "Please resize and press any key to continue"
-        
+
         y1 = height // 2 - 1
         y2 = height // 2
-        
+
         if 0 <= y1 < height and width > len(message1):
             x1 = (width - len(message1)) // 2
             stdscr.addstr(y1, x1, message1, curses.color_pair(6) | curses.A_BOLD)
-            
+
         if 0 <= y2 < height and width > len(message2):
             x2 = (width - len(message2)) // 2
             stdscr.addstr(y2, x2, message2, curses.color_pair(3))
-            
+
         stdscr.refresh()
         stdscr.timeout(-1)  # Wait indefinitely
         stdscr.getch()
     except curses.error:
         pass
 
+
 def _center_text(stdscr, row, text, color_pair, width):
     """Center text on the specified row with the given color pair index."""
     if row < 0 or row >= curses.LINES:
         return
-        
+
     x = max(0, (width - len(text)) // 2)
     try:
         if 0 <= row < curses.LINES and 0 <= x < curses.COLS:
@@ -2533,62 +2629,70 @@ def _center_text(stdscr, row, text, color_pair, width):
     except curses.error:
         pass  # Ignore errors when writing outside bounds
 
+
 def _wrap_text(text, width):
     """Wrap text to fit within the given width."""
     import textwrap
-    return textwrap.wrap(text, width=width, break_long_words=True, replace_whitespace=True)
 
-def _add_particle_burst(particles, x, y, count=5):
+    return textwrap.wrap(
+        text, width=width, break_long_words=True, replace_whitespace=True
+    )
+
+
+def _add_particle_burst(particles, x, y, count=5) -> None:
     """Add a burst of particles from a position."""
     for _ in range(count):
         particle = {
-            'x': x,
-            'y': y,
-            'dx': random.uniform(-1.5, 1.5),
-            'dy': random.uniform(-0.8, 0.8),
-            'life': random.uniform(0.3, 0.8),
-            'char': random.choice(['*', '+', '.', '•', '✦', '✧', '⋆', '★']),
-            'color': random.randint(1, 5)
+            "x": x,
+            "y": y,
+            "dx": random.uniform(-1.5, 1.5),
+            "dy": random.uniform(-0.8, 0.8),
+            "life": random.uniform(0.3, 0.8),
+            "char": random.choice(["*", "+", ".", "•", "✦", "✧", "⋆", "★"]),
+            "color": random.randint(1, 5),
         }
         particles.append(particle)
+
 
 def _update_particles(stdscr, particles, last_time, height, width):
     """Update and draw all particle effects."""
     current_time = time.time()
     dt = current_time - last_time
-    
+
     remaining_particles = []
     for p in particles[:]:
-        p['life'] -= dt
-        if p['life'] > 0:
-            p['x'] += p['dx'] * dt * 10
-            p['y'] += p['dy'] * dt * 8
-            
+        p["life"] -= dt
+        if p["life"] > 0:
+            p["x"] += p["dx"] * dt * 10
+            p["y"] += p["dy"] * dt * 8
+
             # Only draw if within screen bounds
-            x_pos, y_pos = int(p['x']), int(p['y'])
+            x_pos, y_pos = int(p["x"]), int(p["y"])
             if 0 <= y_pos < height - 1 and 0 <= x_pos < width - 1:
                 try:
-                    stdscr.addstr(y_pos, x_pos, p['char'], curses.color_pair(p['color']))
+                    stdscr.addstr(
+                        y_pos, x_pos, p["char"], curses.color_pair(p["color"])
+                    )
                 except curses.error:
                     pass  # Ignore if we can't draw
-            
+
             remaining_particles.append(p)
-    
+
     particles.clear()
     particles.extend(remaining_particles)
 
 
 class LeaderboardPage:
     """Interactive leaderboard page showing repository contributors and their changes."""
-    
+
     COLUMN_LAYOUT = {
         "rank": {"x": 6, "width": 8},
         "name": {"x": 16, "width": 25},
         "commits": {"x": 43, "width": 12},
         "changes": {"x": 57, "width": 20},
-        "impact": {"x": 79, "width": 10}
+        "impact": {"x": 79, "width": 10},
     }
-    
+
     def __init__(self, stdscr, stats):
         """Initialize the leaderboard page."""
         self.stdscr = stdscr
@@ -2602,93 +2706,108 @@ class LeaderboardPage:
         self.frame_time = 1.0 / 30.0  # 30 FPS
         self.accumulated_time = 0.0
         self.animation_offset = 0.0  # For smooth animations
-        
+
         # Initialize color pairs
         curses.start_color()
         curses.use_default_colors()
-        curses.init_pair(1, curses.COLOR_GREEN, -1)   # For additions
-        curses.init_pair(2, curses.COLOR_RED, -1)     # For deletions
+        curses.init_pair(1, curses.COLOR_GREEN, -1)  # For additions
+        curses.init_pair(2, curses.COLOR_RED, -1)  # For deletions
         curses.init_pair(3, curses.COLOR_YELLOW, -1)  # For highlights
-        curses.init_pair(4, curses.COLOR_CYAN, -1)    # For headers
-        curses.init_pair(5, curses.COLOR_MAGENTA, -1) # For borders
-        curses.init_pair(6, curses.COLOR_WHITE, -1)   # For text
-        
+        curses.init_pair(4, curses.COLOR_CYAN, -1)  # For headers
+        curses.init_pair(5, curses.COLOR_MAGENTA, -1)  # For borders
+        curses.init_pair(6, curses.COLOR_WHITE, -1)  # For text
+
     def draw_header(self):
         """Draw the leaderboard header with cosmic effects."""
         height, width = self.stdscr.getmaxyx()
-        
+
         # Draw title box with cosmic border
         title_height = 3
         title_width = 50
         title_x = (width - title_width) // 2
-        _draw_cosmic_border(self.stdscr, 1, title_x, title_height, title_width, time.time())
-        
+        _draw_cosmic_border(
+            self.stdscr, 1, title_x, title_height, title_width, time.time()
+        )
+
         # Draw title with pulsing animation
         title = "🏆 Repository Leaderboard 🏆"
         pulse = abs(math.sin(time.time() * 2))
         title_attr = curses.color_pair(4 if pulse > 0.5 else 1) | curses.A_BOLD
         _center_text_with_attr(self.stdscr, 2, title, title_attr, width)
-        
+
         # Add particle effects around title
         if random.random() < 0.1:
             for _ in range(2):
                 _add_particle_burst(
-                    self.particles,
-                    title_x + random.randint(0, title_width),
-                    2,
-                    count=2
+                    self.particles, title_x + random.randint(0, title_width), 2, count=2
                 )
-        
+
     def draw_author_list(self, start_y, height, width):
         """Draw the list of authors with cosmic effects."""
         if not self.stats["authors"]:
             self.draw_empty_state(start_y, height, width)
             return
-            
+
         # Draw container box with cosmic border
-        list_height = min(len(self.stats["authors"]) * 2 + 3, height - start_y - 3)  # Reduced spacing
+        list_height = min(
+            len(self.stats["authors"]) * 2 + 3, height - start_y - 3
+        )  # Reduced spacing
         list_width = width - 4
-        _draw_cosmic_border(self.stdscr, start_y, 2, list_height, list_width, time.time())
-        
+        _draw_cosmic_border(
+            self.stdscr, start_y, 2, list_height, list_width, time.time()
+        )
+
         # Draw column headers with pulsing effect
         headers = {
             "rank": "Rank",
             "name": "Author",
             "commits": "Commits",
             "changes": "Changes",
-            "impact": "Impact"
+            "impact": "Impact",
         }
-        
+
         header_y = start_y + 1
         pulse = abs(math.sin(time.time() * 2))
         header_attr = curses.color_pair(4) | (curses.A_BOLD if pulse > 0.5 else 0)
-        
+
         # Draw headers with proper spacing
         for col, header in headers.items():
             x = self.COLUMN_LAYOUT[col]["x"]
-            self.stdscr.addstr(header_y, x, header.ljust(self.COLUMN_LAYOUT[col]["width"]), header_attr)
-        
+            self.stdscr.addstr(
+                header_y, x, header.ljust(self.COLUMN_LAYOUT[col]["width"]), header_attr
+            )
+
         # Draw animated separator
         separator_chars = ["═", "═", "═", "═", "═", "═", "═", "═"]  # Smoother animation
-        separator_pos = int((time.time() * 4 + self.animation_offset) % len(separator_chars))
+        separator_pos = int(
+            (time.time() * 4 + self.animation_offset) % len(separator_chars)
+        )
         separator = separator_chars[separator_pos] * (list_width - 2)
-        self.stdscr.addstr(header_y + 1, 3, separator, curses.color_pair(5) | curses.A_BOLD)
-        
+        self.stdscr.addstr(
+            header_y + 1, 3, separator, curses.color_pair(5) | curses.A_BOLD
+        )
+
         # Draw author entries with enhanced effects
         visible_authors = min(10, len(self.stats["authors"]))
         for i, author in enumerate(self.stats["authors"][:visible_authors]):
             y = start_y + 3 + (i * 2)  # Reduced vertical spacing
             if y >= start_y + list_height - 1:
                 break
-                
+
             # Calculate smooth animation effects
             is_selected = i == self.selected_author
             pulse = abs(math.sin(time.time() * 2 + i * 0.3))
-            row_offset = math.sin(time.time() * 1.5 + i * 0.5) * 0.3  # Subtle floating effect
-            
+            row_offset = (
+                math.sin(time.time() * 1.5 + i * 0.5) * 0.3
+            )  # Subtle floating effect
+
             # Base attributes with smooth transitions
-            base_attr = curses.A_REVERSE if is_selected else (curses.A_BOLD if pulse > 0.7 else 0)
-            
+            base_attr = (
+                curses.A_REVERSE
+                if is_selected
+                else (curses.A_BOLD if pulse > 0.7 else 0)
+            )
+
             # Draw rank with medals and effects
             rank_x = self.COLUMN_LAYOUT["rank"]["x"]
             if i < 3:
@@ -2698,66 +2817,83 @@ class LeaderboardPage:
                     rank_symbol = f"✨{rank_symbol[0]}✨"
             else:
                 rank_symbol = f" {i+1}.".ljust(4)
-            
+
             rank_attr = curses.color_pair(3) | base_attr
-            self.stdscr.addstr(y, rank_x, rank_symbol.ljust(self.COLUMN_LAYOUT["rank"]["width"]), rank_attr)
-            
+            self.stdscr.addstr(
+                y,
+                rank_x,
+                rank_symbol.ljust(self.COLUMN_LAYOUT["rank"]["width"]),
+                rank_attr,
+            )
+
             # Draw author name with cosmic glow
             name_x = self.COLUMN_LAYOUT["name"]["x"]
             name = author.get("name", "Unknown")
             if len(name) > self.COLUMN_LAYOUT["name"]["width"] - 3:
-                name = name[:self.COLUMN_LAYOUT["name"]["width"] - 5] + "..."
+                name = name[: self.COLUMN_LAYOUT["name"]["width"] - 5] + "..."
             name_attr = curses.color_pair(6) | base_attr
             if is_selected:
                 name_attr |= curses.A_BOLD
-            self.stdscr.addstr(y, name_x, name.ljust(self.COLUMN_LAYOUT["name"]["width"]), name_attr)
-            
+            self.stdscr.addstr(
+                y, name_x, name.ljust(self.COLUMN_LAYOUT["name"]["width"]), name_attr
+            )
+
             # Draw commit count with dynamic formatting
             commits_x = self.COLUMN_LAYOUT["commits"]["x"]
             commits = author.get("commits", 0)
-            commit_str = f"{commits:,}".rjust(self.COLUMN_LAYOUT["commits"]["width"] - 2)
+            commit_str = f"{commits:,}".rjust(
+                self.COLUMN_LAYOUT["commits"]["width"] - 2
+            )
             commit_attr = curses.color_pair(4) | base_attr
             if commits > 100:
                 commit_attr |= curses.A_BOLD
             self.stdscr.addstr(y, commits_x, commit_str, commit_attr)
-            
+
             # Draw changes with color gradient
             changes_x = self.COLUMN_LAYOUT["changes"]["x"]
-            additions = author.get('additions', 0)
-            deletions = author.get('deletions', 0)
+            additions = author.get("additions", 0)
+            deletions = author.get("deletions", 0)
             changes = f"+{additions:,} -{deletions:,}"
             if len(changes) > self.COLUMN_LAYOUT["changes"]["width"]:
                 changes = f"+{additions//1000}k -{deletions//1000}k"
             changes_attr = curses.color_pair(1) | base_attr
-            self.stdscr.addstr(y, changes_x, changes.ljust(self.COLUMN_LAYOUT["changes"]["width"]), changes_attr)
-            
+            self.stdscr.addstr(
+                y,
+                changes_x,
+                changes.ljust(self.COLUMN_LAYOUT["changes"]["width"]),
+                changes_attr,
+            )
+
             # Draw impact score with dynamic effects
             impact_x = self.COLUMN_LAYOUT["impact"]["x"]
             impact = (additions + deletions) / max(commits, 1)
-            impact_str = f"{impact:.1f}".rjust(self.COLUMN_LAYOUT["impact"]["width"] - 2)
+            impact_str = f"{impact:.1f}".rjust(
+                self.COLUMN_LAYOUT["impact"]["width"] - 2
+            )
             impact_attr = curses.color_pair(3) | base_attr
             if impact > 100:
                 impact_attr |= curses.A_BOLD
             self.stdscr.addstr(y, impact_x, impact_str, impact_attr)
-            
+
             # Add subtle row highlight for selected item
             if is_selected:
                 highlight_char = "·" if pulse > 0.5 else "∙"
-                self.stdscr.addstr(y, 3, highlight_char, curses.color_pair(4) | curses.A_BOLD)
-                self.stdscr.addstr(y, list_width, highlight_char, curses.color_pair(4) | curses.A_BOLD)
-            
+                self.stdscr.addstr(
+                    y, 3, highlight_char, curses.color_pair(4) | curses.A_BOLD
+                )
+                self.stdscr.addstr(
+                    y, list_width, highlight_char, curses.color_pair(4) | curses.A_BOLD
+                )
+
             # Add particle effects for top contributors
             if (i < 3 or is_selected) and random.random() < 0.1:
                 _add_particle_burst(
-                    self.particles,
-                    random.randint(4, width-4),
-                    y,
-                    count=2
+                    self.particles, random.randint(4, width - 4), y, count=2
                 )
-        
+
         # Update animation offset
         self.animation_offset += 0.1
-        
+
     def draw_empty_state(self, start_y, height, width):
         """Draw an enhanced empty state message with cosmic effects."""
         messages = [
@@ -2768,20 +2904,22 @@ class LeaderboardPage:
             "• No commits have been made yet",
             "• Git history is not accessible",
             "",
-            "Make some commits to see your achievements!"
+            "Make some commits to see your achievements!",
         ]
-        
+
         # Draw message box with cosmic border
         box_height = len(messages) + 4
         box_width = 50
         box_x = (width - box_width) // 2
-        _draw_cosmic_border(self.stdscr, start_y, box_x, box_height, box_width, time.time())
-        
+        _draw_cosmic_border(
+            self.stdscr, start_y, box_x, box_height, box_width, time.time()
+        )
+
         # Draw messages with enhanced effects
         for i, message in enumerate(messages):
             if start_y + 2 + i >= height:
                 break
-                
+
             # Choose color based on message type with pulsing effects
             pulse = abs(math.sin(time.time() * 2 + i * 0.5))
             if i == 0:  # Main message
@@ -2796,14 +2934,14 @@ class LeaderboardPage:
                 continue
             else:  # Call to action
                 color = curses.color_pair(1) | curses.A_BOLD
-            
+
             # Add sparkle animation to the main message
             if i == 0:
                 sparkle = "⭐" if pulse > 0.5 else "✨"
                 message = f"{sparkle} {message.strip('✨')} {sparkle}"
-            
+
             _center_text_with_attr(self.stdscr, start_y + 2 + i, message, color, width)
-        
+
         # Add cosmic particle effects
         if random.random() < 0.1:
             for _ in range(2):
@@ -2811,83 +2949,97 @@ class LeaderboardPage:
                     self.particles,
                     random.randint(box_x, box_x + box_width),
                     start_y + random.randint(0, box_height),
-                    count=4
+                    count=4,
                 )
-            
+
     def draw_footer(self, height, width):
         """Draw an enhanced footer with cosmic effects."""
         footer_y = height - 2
         footer_text = "↑/↓: Navigate   F: Toggle Files   Q: Quit"
-        
+
         # Draw footer box with cosmic border
         footer_width = len(footer_text) + 4
         footer_x = (width - footer_width) // 2
-        _draw_cosmic_border(self.stdscr, footer_y - 1, footer_x, 3, footer_width, time.time())
-        
+        _draw_cosmic_border(
+            self.stdscr, footer_y - 1, footer_x, 3, footer_width, time.time()
+        )
+
         # Draw footer text with pulsing effect
         pulse = abs(math.sin(time.time() * 1.5))
-        footer_attr = curses.color_pair(6) | (curses.A_BOLD if pulse > 0.7 else curses.A_DIM)
+        footer_attr = curses.color_pair(6) | (
+            curses.A_BOLD if pulse > 0.7 else curses.A_DIM
+        )
         _center_text_with_attr(self.stdscr, footer_y, footer_text, footer_attr, width)
-        
+
     def run(self):
         """Run the leaderboard page with smooth animations."""
         try:
             curses.curs_set(0)  # Hide cursor
-            
+
             while True:
                 # Handle frame timing
                 current_time = time.time()
                 delta_time = current_time - self.last_time
                 self.accumulated_time += delta_time
-                
+
                 if self.accumulated_time < self.frame_time:
                     time.sleep(max(0, self.frame_time - self.accumulated_time))
                     continue
-                
+
                 self.last_time = current_time
                 self.accumulated_time = 0.0
-                
+
                 # Clear and get dimensions
                 self.stdscr.clear()
                 height, width = self.stdscr.getmaxyx()
-                
+
                 # Draw matrix rain in background
                 self.matrix_rain.update()
-                
+
                 # Draw components
                 self.draw_header()
                 self.draw_author_list(5, height - 8, width)
                 self.draw_footer(height, width)
-                
+
                 # Update effects
                 self.decryption.update()
-                _update_particles(self.stdscr, self.particles, current_time, height, width)
-                
+                _update_particles(
+                    self.stdscr, self.particles, current_time, height, width
+                )
+
                 # Refresh screen
                 self.stdscr.refresh()
-                
+
                 # Handle input
                 try:
                     key = self.stdscr.getch()
-                    if key == ord('q'):
+                    if key == ord("q"):
                         break
                     elif key == curses.KEY_UP and self.selected_author > 0:
                         self.selected_author -= 1
-                        _add_particle_burst(self.particles, width // 2, 5 + self.selected_author * 2)
-                    elif key == curses.KEY_DOWN and self.selected_author < len(self.stats.get("authors", [])) - 1:
+                        _add_particle_burst(
+                            self.particles, width // 2, 5 + self.selected_author * 2
+                        )
+                    elif (
+                        key == curses.KEY_DOWN
+                        and self.selected_author
+                        < len(self.stats.get("authors", [])) - 1
+                    ):
                         self.selected_author += 1
-                        _add_particle_burst(self.particles, width // 2, 5 + self.selected_author * 2)
-                    elif key == ord('f'):
+                        _add_particle_burst(
+                            self.particles, width // 2, 5 + self.selected_author * 2
+                        )
+                    elif key == ord("f"):
                         self.show_files = not self.show_files
                         # Add effect for toggle
                         _add_particle_burst(self.particles, width - 10, height - 2)
                 except curses.error:
                     continue
-                
+
             return True
-            
+
         except Exception as e:
-            logging.error(f"Error running leaderboard GUI: {str(e)}")
+            logging.error(f"Error running leaderboard GUI: {e!s}")
             return False
 
 

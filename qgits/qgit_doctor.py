@@ -8,11 +8,15 @@ including configuration checks, performance analysis, and automated fixes.
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
-
 from qgits.qgit_errors import GitCommandError
 from qgits.qgit_git import GitCommand
 from qgits.qgit_utils import format_size
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+)
 
 
 class RepositoryDoctor:
@@ -127,7 +131,7 @@ class RepositoryDoctor:
             )
 
         except GitCommandError as e:
-            self.add_issue("config", "critical", f"Error checking git config: {str(e)}")
+            self.add_issue("config", "critical", f"Error checking git config: {e!s}")
             return False
 
     def check_remote_connection(self) -> bool:
@@ -187,7 +191,7 @@ class RepositoryDoctor:
             )
 
         except GitCommandError as e:
-            self.add_issue("remote", "critical", f"Error checking remotes: {str(e)}")
+            self.add_issue("remote", "critical", f"Error checking remotes: {e!s}")
             return False
 
     def check_large_files(self, size_threshold_mb: int = 100) -> bool:
@@ -241,9 +245,7 @@ class RepositoryDoctor:
             return True
 
         except GitCommandError as e:
-            self.add_issue(
-                "storage", "warning", f"Error checking large files: {str(e)}"
-            )
+            self.add_issue("storage", "warning", f"Error checking large files: {e!s}")
             return False
 
     def check_branch_status(self) -> bool:
@@ -298,9 +300,7 @@ class RepositoryDoctor:
             return True
 
         except GitCommandError as e:
-            self.add_issue(
-                "branch", "critical", f"Error checking branch status: {str(e)}"
-            )
+            self.add_issue("branch", "critical", f"Error checking branch status: {e!s}")
             return False
 
     def check_hooks(self) -> bool:
@@ -348,7 +348,7 @@ class RepositoryDoctor:
             return True
 
         except Exception as e:
-            self.add_issue("hooks", "warning", f"Error checking hooks: {str(e)}")
+            self.add_issue("hooks", "warning", f"Error checking hooks: {e!s}")
             return False
 
     def check_gitignore(self) -> bool:
@@ -380,7 +380,7 @@ class RepositoryDoctor:
                 return False
 
             # Read current patterns
-            with open(gitignore_path, "r") as f:
+            with open(gitignore_path) as f:
                 current_patterns = set(
                     line.strip()
                     for line in f
@@ -430,9 +430,7 @@ class RepositoryDoctor:
             return True
 
         except Exception as e:
-            self.add_issue(
-                "gitignore", "warning", f"Error checking .gitignore: {str(e)}"
-            )
+            self.add_issue("gitignore", "warning", f"Error checking .gitignore: {e!s}")
             return False
 
     def check_lfs_status(self) -> bool:
@@ -506,14 +504,12 @@ class RepositoryDoctor:
                             "Git LFS is installed but no files are tracked",
                         )
                 except GitCommandError as e:
-                    self.add_issue(
-                        "lfs", "warning", f"Error checking LFS files: {str(e)}"
-                    )
+                    self.add_issue("lfs", "warning", f"Error checking LFS files: {e!s}")
 
             return True
 
         except Exception as e:
-            self.add_issue("lfs", "warning", f"Error checking LFS status: {str(e)}")
+            self.add_issue("lfs", "warning", f"Error checking LFS status: {e!s}")
             return False
 
     def check_commit_history(self) -> bool:
@@ -581,7 +577,7 @@ class RepositoryDoctor:
 
         except GitCommandError as e:
             self.add_issue(
-                "history", "warning", f"Error checking commit history: {str(e)}"
+                "history", "warning", f"Error checking commit history: {e!s}"
             )
             return False
 
@@ -625,16 +621,14 @@ class RepositoryDoctor:
 
                 except GitCommandError as e:
                     self.add_issue(
-                        "submodules", "critical", f"Error checking submodules: {str(e)}"
+                        "submodules", "critical", f"Error checking submodules: {e!s}"
                     )
                     return False
 
             return True
 
         except Exception as e:
-            self.add_issue(
-                "submodules", "warning", f"Error checking submodules: {str(e)}"
-            )
+            self.add_issue("submodules", "warning", f"Error checking submodules: {e!s}")
             return False
 
     def run_all_checks(self) -> bool:
@@ -662,7 +656,7 @@ class RepositoryDoctor:
                     all_critical_passed = False
             except Exception as e:
                 self.add_issue(
-                    "system", "critical", f"Error running {check.__name__}: {str(e)}"
+                    "system", "critical", f"Error running {check.__name__}: {e!s}"
                 )
                 all_critical_passed = False
 
@@ -694,7 +688,7 @@ class RepositoryDoctor:
 
                 except GitCommandError as e:
                     if self.verbose:
-                        print(f"Fix failed: {str(e)}")
+                        print(f"Fix failed: {e!s}")
                     fixes_failed += 1
 
         return fixes_applied, fixes_failed

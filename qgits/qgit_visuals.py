@@ -5,18 +5,9 @@ This module provides a 3D visualization of Git repository structure and history.
 commit history, and file modifications over time.
 """
 
-import asyncio
-import gc
 import logging
 import os
-import subprocess
 import sys
-import time
-import venv
-from typing import List, Set
-
-import numpy as np
-import pygame
 from OpenGL.GL import (
     GL_BLEND,
     GL_COLOR_BUFFER_BIT,
@@ -59,22 +50,24 @@ from OpenGL.GL import (
     glTexParameteri,
     glVertex2f,
 )
+import asyncio
+import gc
+from internal.resource_manager import get_resource_manager
+import numpy as np
+import pygame
 from pygame.locals import (
     DOUBLEBUF,
+    K_c,
     K_ESCAPE,
+    K_i,
+    K_r,
     K_SPACE,
     KEYDOWN,
     MOUSEBUTTONDOWN,
     MOUSEBUTTONUP,
     OPENGL,
     QUIT,
-    K_c,
-    K_i,
-    K_r,
 )
-
-from internal.resource_manager import get_resource_manager
-
 from qgits.qgit_core import (
     format_size,
     get_current_branch,
@@ -82,10 +75,17 @@ from qgits.qgit_core import (
     get_staged_files,
     is_git_repo,
 )
+import subprocess
+import time
+from typing import (
+    List,
+    Set,
+)
+import venv
 
 
 # Configure logging
-def setup_logging():
+def setup_logging() -> None:
     """Configure logging for the QGit visualizer."""
     log_dir = os.path.join(os.path.expanduser("~"), ".qgit", "logs")
     os.makedirs(log_dir, exist_ok=True)
@@ -139,7 +139,7 @@ def install_requirements():
         logging.info("Successfully installed all requirements in virtual environment")
 
     except Exception as e:
-        logging.error(f"Failed to install requirements: {str(e)}", exc_info=True)
+        logging.error(f"Failed to install requirements: {e!s}", exc_info=True)
         sys.exit(1)
 
 
@@ -1211,18 +1211,13 @@ class GitVisualizer:
                 return np.array(
                     [0.3, 0.5, 0.8, 0.95]
                 )  # Lighter blue for small directories
+        # Enhanced color scheme for files based on activity
+        elif node.commit_count > 10:
+            return np.array([0.7, 0.4, 0.7, 0.95])  # Vivid purple for high activity
+        elif node.commit_count > 5:
+            return np.array([0.7, 0.5, 0.3, 0.95])  # Vivid orange for medium activity
         else:
-            # Enhanced color scheme for files based on activity
-            if node.commit_count > 10:
-                return np.array([0.7, 0.4, 0.7, 0.95])  # Vivid purple for high activity
-            elif node.commit_count > 5:
-                return np.array(
-                    [0.7, 0.5, 0.3, 0.95]
-                )  # Vivid orange for medium activity
-            else:
-                return np.array(
-                    [0.4, 0.6, 0.7, 0.95]
-                )  # Vivid blue-gray for low activity
+            return np.array([0.4, 0.6, 0.7, 0.95])  # Vivid blue-gray for low activity
 
     def build_tree(self):
         """Synchronous version of tree building for compatibility."""
@@ -1310,7 +1305,7 @@ def show_loading_screen(progress: float, message: str) -> bool:
 
             glDeleteTextures([texture])
         except Exception as e:
-            logging.warning(f"Error rendering text: {str(e)}")
+            logging.warning(f"Error rendering text: {e!s}")
             # Continue even if text rendering fails
 
         pygame.display.flip()
@@ -1323,7 +1318,7 @@ def show_loading_screen(progress: float, message: str) -> bool:
         return True
 
     except Exception as e:
-        logging.error(f"Error in loading screen: {str(e)}")
+        logging.error(f"Error in loading screen: {e!s}")
         return False
 
 
@@ -1413,7 +1408,7 @@ class LoadingVisualizer(GitVisualizer):
                 f"Failed to initialize LoadingVisualizer: {e}", exc_info=True
             )
             pygame.quit()
-            raise RuntimeError(f"Failed to initialize visualizer: {str(e)}")
+            raise RuntimeError(f"Failed to initialize visualizer: {e!s}")
 
     async def build_tree_async(self):
         """Build the repository tree structure asynchronously with loading screen."""
@@ -1515,7 +1510,7 @@ class LoadingVisualizer(GitVisualizer):
                         file_node.file_size = os.path.getsize(
                             os.path.join(self.repo_path, rel_path)
                         )
-                    except (OSError, IOError):
+                    except OSError:
                         pass
 
                     file_nodes.append((file_node, rel_path))
@@ -1779,7 +1774,7 @@ def visualize_repo(repo_path: str = None):
         print("\nVisualization cancelled by user.")
     except Exception as e:
         logging.error("Unexpected error in visualization", exc_info=True)
-        print(f"Error launching visualization: {str(e)}")
+        print(f"Error launching visualization: {e!s}")
     finally:
         pygame.quit()
 

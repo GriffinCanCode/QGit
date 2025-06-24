@@ -6,11 +6,8 @@ handling common Git operations. All other modules should use this interface
 rather than implementing their own Git command execution.
 """
 
-import subprocess
-import time
+from .qgit_logger import logger
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
-
 from qgits.qgit_errors import (
     GitCommandError,
     GitConfigError,
@@ -18,7 +15,15 @@ from qgits.qgit_errors import (
     GitRepositoryError,
     GitStateError,
 )
-from .qgit_logger import logger
+import subprocess
+import time
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+)
 
 
 class GitCommand:

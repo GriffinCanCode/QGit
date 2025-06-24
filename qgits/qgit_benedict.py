@@ -7,18 +7,16 @@ This module provides core functionality for:
 3. Handling tracked/untracked file operations
 """
 
-import fnmatch
 import os
+from collections.abc import Generator
 from datetime import datetime
-from time import sleep
-from typing import Any, Dict, Generator, List, Tuple
-
+import fnmatch
 from qgits.qgit_errors import (
     FileOperationError,
+    format_error,
     GitCommandError,
     GitRepositoryError,
     GitStateError,
-    format_error,
 )
 from qgits.qgit_git import GitCommand
 from qgits.qgit_utils import (
@@ -28,6 +26,14 @@ from qgits.qgit_utils import (
     generate_gitignore_from_scan,
     group_files_by_pattern,
 )
+from time import sleep
+from typing import (
+    Any,
+    Dict,
+    List,
+    Tuple,
+)
+
 
 # Default patterns for sensitive files
 DEFAULT_SENSITIVE_PATTERNS = [
@@ -173,7 +179,7 @@ def scan_repository(
 
     except Exception as e:
         print(
-            "\r" + _format_error(f"Scan failed: {str(e)}") + " " * 50
+            "\r" + _format_error(f"Scan failed: {e!s}") + " " * 50
         )  # Clear spinner line
         raise FileOperationError(
             "Failed to scan repository", filepath=directory, operation="scan"
@@ -322,7 +328,7 @@ def _write_gitignore(content: str) -> None:
     try:
         with open(".gitignore", "w") as f:
             f.write(content)
-    except IOError as e:
+    except OSError as e:
         raise FileOperationError(
             "Failed to write .gitignore", filepath=".gitignore", operation="write"
         ) from e
@@ -336,9 +342,7 @@ def _commit_gitignore_changes() -> bool:
     """
     try:
         GitCommand.stage_files([".gitignore"])
-        GitCommand.commit(
-            "🔒 Update .gitignore with security patterns from qgit"
-        )
+        GitCommand.commit("🔒 Update .gitignore with security patterns from qgit")
         current_branch = GitCommand.get_current_branch()
         GitCommand.push("origin", current_branch)
         print("✅ Committed and synced updated .gitignore to repository")
@@ -494,7 +498,7 @@ def _update_gitignore_with_patterns(files: Dict[str, Dict[str, Any]]) -> None:
             new_patterns = [p for p in patterns_to_add if p not in existing_patterns]
             if new_patterns:
                 f.write("\n" + "\n".join(new_patterns) + "\n")
-    except IOError as e:
+    except OSError as e:
         raise FileOperationError(
             "Failed to update .gitignore", filepath=".gitignore", operation="append"
         ) from e
@@ -613,8 +617,9 @@ def expel() -> bool:
         return True
 
     except (GitCommandError, GitStateError, GitRepositoryError) as e:
-        print("\r" + _format_error(f"Failed to untrack files: {str(e)}") + " " * 50)
+        print("\r" + _format_error(f"Failed to untrack files: {e!s}") + " " * 50)
         return False
+
 
 def _display_tracked_files(files: List[str]) -> None:
     """Display list of tracked files.
@@ -625,7 +630,8 @@ def _display_tracked_files(files: List[str]) -> None:
     print(_format_header("Currently Tracked Files"))
     for file in files:
         print(f"{COLORS['BLUE']}• {file}{COLORS['ENDC']}")
-        
+
+
 def _untrack_all_files(files: List[str]) -> None:
     """Untrack all specified files from git.
 

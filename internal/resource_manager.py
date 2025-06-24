@@ -1,46 +1,68 @@
-import asyncio
-import json
 import logging
-import multiprocessing
 import os
-import platform
 import sys
-import time
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from enum import Enum, auto
+import asyncio
+from concurrent.futures import (
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+)
+from enum import (
+    auto,
+    Enum,
+)
 from functools import lru_cache
+import json
+import multiprocessing
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+import platform
+import time
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+)
 
 
 class CoreType(Enum):
     """Enum for different CPU core types."""
+
     PERFORMANCE = auto()
     EFFICIENCY = auto()
 
 
 class M4MaxConfig:
     """Configuration class for M4 Max resource management."""
+
     def __init__(self, cache_dir: Path):
         self.cache_dir = cache_dir
         self.performance_cores = max(1, multiprocessing.cpu_count() // 2)
-        self.efficiency_cores = max(1, multiprocessing.cpu_count() - self.performance_cores)
+        self.efficiency_cores = max(
+            1, multiprocessing.cpu_count() - self.performance_cores
+        )
         self.cache_limit_bytes = 1024 * 1024 * 1024  # 1GB default
-        
+
         # Cross-platform memory detection
         try:
             import psutil
+
             self.memory_limit_bytes = psutil.virtual_memory().total
             self.memory_available = psutil.virtual_memory().available
         except ImportError:
             # Fallback for systems without psutil
             if platform.system() == "Windows":
                 import ctypes
+
                 kernel32 = ctypes.windll.kernel32
-                self.memory_limit_bytes = kernel32.GetPhysicallyInstalledSystemMemory() * 1024 * 1024
+                self.memory_limit_bytes = (
+                    kernel32.GetPhysicallyInstalledSystemMemory() * 1024 * 1024
+                )
             else:
                 # Linux/Mac fallback
-                self.memory_limit_bytes = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+                self.memory_limit_bytes = os.sysconf("SC_PAGE_SIZE") * os.sysconf(
+                    "SC_PHYS_PAGES"
+                )
             self.memory_available = int(self.memory_limit_bytes * 0.8)
 
 
@@ -156,7 +178,7 @@ class MetadataManager:
 
         if self.metadata_file.exists():
             try:
-                with open(self.metadata_file, "r") as f:
+                with open(self.metadata_file) as f:
                     data = json.load(f)
                     self.memory_manager.set_cached_data("metadata", data)
                     return data
@@ -218,7 +240,7 @@ class FileOperator:
         """Get size of a single file asynchronously"""
         try:
             return file.stat().st_size if file.exists() else 0
-        except (OSError, IOError):
+        except OSError:
             return 0
 
     async def calculate_directory_size(self, files: List[Path]) -> int:
@@ -281,7 +303,7 @@ class CacheManager:
                         if age > self.max_cache_age:
                             files_to_remove.append(item)
                             self.metadata_manager.remove_entry(item.name)
-                    except (OSError, IOError) as e:
+                    except OSError as e:
                         print(f"Error checking file age: {e}")
 
             if files_to_remove:
@@ -396,6 +418,7 @@ class CacheManager:
 
 class ResourceConfig(M4MaxConfig):
     """Resource configuration with M4 Max optimizations."""
+
     def __init__(self, cache_dir: Path):
         super().__init__(cache_dir)
 
@@ -403,6 +426,7 @@ class ResourceConfig(M4MaxConfig):
         """Get available system memory in bytes."""
         try:
             import psutil
+
             return psutil.virtual_memory().available
         except ImportError:
             # Fallback to a conservative estimate of 80% of total memory

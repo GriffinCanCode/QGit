@@ -24,7 +24,6 @@ env/
 build/
 dist/
 *.egg-info/
-.pypirc
 
 # Logs and databases
 *.log
@@ -43,7 +42,7 @@ logs/
 Thumbs.db
 
 # Additional patterns from scan
-*auth*
+
 *config*.json
 *token*
 .dll
@@ -54,4 +53,5 @@ Thumbs.db
 .pem
 .png
 .pyc
+.tar.gz
 .zip

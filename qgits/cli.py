@@ -2,5 +2,6 @@
 
 from qgits.qgit import main
 
+
 if __name__ == "__main__":
-    exit(main()) 
+    exit(main())
